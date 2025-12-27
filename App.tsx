@@ -357,24 +357,28 @@ const App: React.FC = () => {
     // 修改：移除手機版頂部留白 (py-0)，確保結果頁圖片可以置頂
     <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-0 md:py-8">
       {step === 'hero' && (
-        // 因為外層移除了 padding，這裡手動補回 hero 的頂部留白
-        <div className="flex-1 flex flex-col justify-center w-full animate-fade-in py-8 md:py-10 space-y-6 md:space-y-12 px-4 md:px-0">
-          <div className="text-center space-y-3 md:space-y-4">
-            <h1 className="text-4xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
+        // 調整：縮減手機版 padding (py-6) 與間距 (space-y-4)，對齊方式改為 justify-start
+        <div className="flex-1 flex flex-col justify-start md:justify-center w-full animate-fade-in py-6 md:py-10 space-y-4 md:space-y-12 px-4 md:px-0">
+          <div className="text-center space-y-2 md:space-y-4">
+            {/* 調整：縮小手機版標題 (text-3xl) */}
+            <h1 className="text-3xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
             <div className="space-y-1 md:space-y-2">
-                <p className="text-xl md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
-                <p className="text-xl md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
+                {/* 調整：縮小手機版副標題 (text-lg) */}
+                <p className="text-lg md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
+                <p className="text-lg md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
             </div>
           </div>
 
-          <div className="relative w-full h-[180px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
+          {/* 調整：縮小手機版圖片高度 (h-[140px]) */}
+          <div className="relative w-full h-[140px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
              <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain h-full w-auto" />
           </div>
 
           <div className="px-2 md:px-4 w-full">
+            {/* 調整：縮小手機版按鈕 padding (py-4) */}
             <button 
               onClick={handleStart} 
-              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-5 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
+              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
             >
               <span className="relative z-10">啟動深度分析</span>
             </button>
