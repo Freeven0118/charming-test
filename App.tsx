@@ -559,7 +559,7 @@ const App: React.FC = () => {
                  <h5 className="text-blue-600 font-black text-2xl uppercase tracking-widest mb-3">人格診斷分析</h5>
                  <div className="space-y-6">
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-slate-800 text-2xl md:text-3xl leading-relaxed font-bold">
+                        <p key={idx} className="text-slate-800 text-2xl md:text-2xl leading-relaxed font-bold">
                             {line}
                         </p>
                     ))}
@@ -616,7 +616,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-10">
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-2xl md:text-1xl leading-relaxed font-medium text-white text-justify">
+                        <p key={idx} className="text-2xl md:text-2xl leading-relaxed font-medium text-white text-justify">
                             {line}
                         </p>
                         ))}
@@ -636,7 +636,7 @@ const App: React.FC = () => {
 
                     <div className="space-y-6">
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
+                            <p key={index} className="text-lg md:text-2xl leading-relaxed font-medium text-white text-justify">
                                 {paragraph}
                             </p>
                         ))}
