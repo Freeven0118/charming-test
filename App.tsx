@@ -616,7 +616,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-10">
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-2xl md:text-3xl leading-relaxed font-medium text-white text-justify">
+                        <p key={idx} className="text-2xl md:text-1xl leading-relaxed font-medium text-white text-justify">
                             {line}
                         </p>
                         ))}
