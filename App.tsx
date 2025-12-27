@@ -261,6 +261,11 @@ const App: React.FC = () => {
   useEffect(() => {
     if (step === 'result' && localSummary && radarChartRef.current) {
       const ctx = radarChartRef.current.getContext('2d');
+      // 判斷是否為手機尺寸 (小於 768px)
+      const isMobile = window.innerWidth < 768;
+      // 設定字體大小：手機 16px，電腦 20px
+      const labelFontSize = isMobile ? 16 : 20;
+
       if (ctx) {
         if (chartInstance.current) chartInstance.current.destroy();
         // @ts-ignore
@@ -282,7 +287,11 @@ const App: React.FC = () => {
             scales: { 
               r: { 
                 min: 0, max: 12, ticks: { display: false, stepSize: 3 },
-                pointLabels: { font: { size: 14, weight: 'bold' }, color: '#64748b' }
+                // 調整 pointLabels 設定：放大字體，加深顏色
+                pointLabels: { 
+                    font: { size: labelFontSize, weight: '900', family: "'Noto Sans TC', sans-serif" }, 
+                    color: '#334155' // 使用更深的 Slate-700/800 色調提升閱讀性
+                }
               } 
             },
             plugins: { legend: { display: false } },
@@ -345,9 +354,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-4 md:py-8">
+    // 修改：移除手機版頂部留白 (py-0)，確保結果頁圖片可以置頂
+    <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-0 md:py-8">
       {step === 'hero' && (
-        <div className="flex-1 flex flex-col justify-center w-full animate-fade-in py-8 md:py-10 space-y-8 md:space-y-12 px-4 md:px-0">
+        // 因為外層移除了 padding，這裡手動補回 hero 的頂部留白
+        <div className="flex-1 flex flex-col justify-center w-full animate-fade-in py-8 md:py-10 space-y-6 md:space-y-12 px-4 md:px-0">
           <div className="text-center space-y-3 md:space-y-4">
             <h1 className="text-4xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
             <div className="space-y-1 md:space-y-2">
@@ -356,8 +367,17 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative w-full aspect-[4/3] flex items-center justify-center animate-float">
-             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="w-full h-full object-contain" />
+          <div className="relative w-full h-[180px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
+             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain h-full w-auto" />
+          </div>
+
+          <div className="px-2 md:px-4 w-full">
+            <button 
+              onClick={handleStart} 
+              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-5 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
+            >
+              <span className="relative z-10">啟動深度分析</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:gap-6 px-2 md:px-4">
@@ -375,20 +395,12 @@ const App: React.FC = () => {
               </div>
             ))}
           </div>
-
-          <div className="px-2 md:px-4">
-            <button 
-              onClick={handleStart} 
-              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-5 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
-            >
-              <span className="relative z-10">啟動深度分析</span>
-            </button>
-          </div>
         </div>
       )}
 
       {step === 'quiz' && (
-        <div className="w-full space-y-4 md:space-y-6 py-2 md:py-4 px-4 md:px-0">
+        // 補回 quiz 的頂部留白
+        <div className="w-full space-y-4 md:space-y-6 py-6 md:py-4 px-4 md:px-0">
           {/* 進度條 */}
           <div className="w-full px-2">
             <div className="flex justify-between text-sm text-slate-400 mb-2 font-black uppercase tracking-widest">
@@ -400,7 +412,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* 內容區：使用 key 強制觸發 React 重繪以執行 CSS 動畫 */}
           <div key={isIntroMode ? `intro-${currentIdx}` : `q-${currentIdx}`} className="animate-slide-up">
             {isIntroMode ? (
               <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center">
@@ -416,12 +427,10 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4 md:space-y-6">
-                {/* 題目卡片：縮小手機版 padding 與 min-height */}
                 <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 min-h-[160px] md:min-h-[200px] flex items-center justify-center">
                   <h2 className="text-xl md:text-3xl font-black text-slate-800 text-center leading-relaxed px-1 md:px-4">{QUESTIONS[currentIdx].text}</h2>
                 </div>
                 
-                {/* 選項區域：縮小手機版間距 */}
                 <div className="space-y-2.5 md:space-y-3">
                   {OPTIONS.map((opt, idx) => {
                     const isSelected = answers[QUESTIONS[currentIdx].id] === opt.value;
@@ -437,12 +446,9 @@ const App: React.FC = () => {
                         `}
                         style={{ animationDelay: `${idx * 70}ms` }}
                       >
-                        {/* 選項文字：縮小手機版字體 */}
                         <span className={`font-bold text-lg md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>
                           {opt.label}
                         </span>
-                        
-                        {/* 互動式 Radio 指示器 */}
                         <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
                            ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}
                         `}>
@@ -484,10 +490,7 @@ const App: React.FC = () => {
             </>
           ) : (
             <div className="space-y-6 bg-white p-8 rounded-[2.5rem] shadow-xl border-2 border-slate-200 max-w-md w-full animate-fade-in">
-                {/* 狀態圖示 */}
                 <div className="text-6xl animate-bounce">🔐</div>
-                
-                {/* 訊息區 */}
                 <div className="space-y-2">
                     <h3 className="text-2xl font-black text-slate-800">
                       {showKeyInput ? "系統設定未完成" : "連線發生問題"}
@@ -498,8 +501,6 @@ const App: React.FC = () => {
                           : lastError}
                     </p>
                 </div>
-
-                {/* 輸入區與按鈕區 */}
                 {showKeyInput ? (
                    <div className="space-y-4 pt-4">
                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left space-y-2">
@@ -530,7 +531,6 @@ const App: React.FC = () => {
                        重試連線
                    </button>
                 )}
-
                 <button onClick={() => runDiagnosis(true)} className="w-full py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors">
                     跳過 AI，直接查看基礎報告
                 </button>
@@ -541,17 +541,22 @@ const App: React.FC = () => {
       )}
 
       {step === 'result' && localSummary && aiAnalysis && (
-        <div className="w-full space-y-10 py-8 animate-fade-in">
-          {/* 1. 人格卡片區塊 - 移除 padding 並使用 object-cover 以達成 100% 寬度 */}
-          <div className="bg-white md:rounded-[3.5rem] shadow-2xl overflow-hidden border-b md:border border-slate-100 animate-slide-up" style={{ animationDelay: '0ms' }}>
-            <div className="relative aspect-[3/2] flex items-center justify-center bg-gray-50">
-              <img src={activePersona.imageUrl} alt={activePersona.title} className="w-full h-full object-cover" />
-              <div className="absolute bottom-0 left-0 p-8 text-white bg-gradient-to-t from-black/80 w-full">
+        // 結果頁不需要額外的 padding，確保圖片置頂
+        <div className="w-full space-y-10 animate-fade-in pb-12">
+          {/* 1. 人格卡片區塊 - 優化圖片比例與文字大小 */}
+          <div className="bg-white rounded-b-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden border-b md:border border-slate-100 animate-slide-up" style={{ animationDelay: '0ms' }}>
+            {/* 修改：aspect-[3/4] 為直式比例，確保臉部露出，object-top 確保頭部對齊 */}
+            <div className="relative aspect-[3/4] md:aspect-[21/9] flex items-end justify-center bg-gray-900">
+              <img src={activePersona.imageUrl} alt={activePersona.title} className="w-full h-full object-cover object-top" />
+              {/* 漸層與文字：文字縮小，避免遮擋 */}
+              <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white bg-gradient-to-t from-black/90 via-black/50 to-transparent w-full pt-24 md:pt-32">
                 <div className="flex flex-col items-start space-y-1 mb-2">
-                   <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
+                   <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
                 </div>
-                <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-2">{activePersona.title}</h2>
-                <p className="text-2xl md:text-3xl font-medium text-white/90 italic">{aiAnalysis.personaOverview || activePersona.subtitle}</p>
+                {/* 標題縮小：text-3xl (手機) */}
+                <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-2 leading-tight">{activePersona.title}</h2>
+                {/* 副標題縮小：text-lg (手機) */}
+                <p className="text-lg md:text-3xl font-medium text-white/90 italic leading-snug">{aiAnalysis.personaOverview || activePersona.subtitle}</p>
               </div>
             </div>
             <div className="p-8 md:p-10 space-y-8">
@@ -563,7 +568,6 @@ const App: React.FC = () => {
               <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100">
                  <h5 className="text-blue-600 font-black text-2xl uppercase tracking-widest mb-3">人格診斷分析</h5>
                  <div className="space-y-6">
-                    {/* 修正：將這裡的 text-xl 改為 text-lg，縮小內文字體 */}
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                         <p key={idx} className="text-slate-800 text-lg md:text-xl leading-relaxed font-bold">
                             {line}
@@ -621,15 +625,14 @@ const App: React.FC = () => {
                         <h3 className="text-3xl font-black text-amber-400 tracking-tight">教練總結</h3>
                     </div>
                     <div className="space-y-10">
-                        {/* 修正：將這裡的 text-lg 改為 text-base，縮小上半部教練建議字體，以區隔下方重點文案 */}
+                        {/* 修正：分隔線上方的字放大 (text-lg md:text-xl) */}
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-base md:text-lg leading-relaxed font-medium text-white text-justify">
+                        <p key={idx} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
                             {line}
                         </p>
                         ))}
                     </div>
                     
-                    {/* 新增：解決方案視覺區隔 - 取代原本的細分隔線 */}
                     <div className="py-8">
                          <div className="flex items-center space-x-4 mb-4">
                              <div className="h-px bg-slate-700 flex-1"></div>
@@ -638,12 +641,14 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         <h4 className="text-center text-white font-bold text-3xl md:text-4xl tracking-tight mb-6">從「知道」到「做到」</h4>
+                         {/* 修正：標題放大 (text-4xl md:text-5xl) */}
+                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-6">
+                        {/* 修正：分隔線下方的字放大 (text-xl md:text-2xl) */}
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
+                            <p key={index} className="text-xl md:text-2xl leading-relaxed font-medium text-white text-justify">
                                 {paragraph}
                             </p>
                         ))}
@@ -653,7 +658,6 @@ const App: React.FC = () => {
                     <button onClick={() => window.open('https://www.menspalais.com', '_blank')} className="group w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 md:py-6 rounded-[2rem] text-2xl md:text-3xl shadow-xl shadow-amber-900/20 flex items-center justify-center space-x-2 md:space-x-3 transition-all transform active:scale-95 mt-4 hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
                        <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></span>
                        
-                       {/* 修正：強制分行結構，確保手機版文字不會亂跑 */}
                        <div className="flex flex-col items-center justify-center leading-none py-1">
                            <span className="text-xl md:text-3xl font-black tracking-tight">查看 5 週變身計畫</span>
                            <span className="text-sm md:text-lg font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
