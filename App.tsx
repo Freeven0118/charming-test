@@ -347,37 +347,39 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-4 md:py-8">
       {step === 'hero' && (
-        <div className="flex-1 flex flex-col justify-center w-full animate-fade-in py-10 space-y-12 px-4 md:px-0">
-          <div className="text-center space-y-4">
-            <h1 className="text-6xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
-            <p className="text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
-             <p className="text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
+        <div className="flex-1 flex flex-col justify-center w-full animate-fade-in py-8 md:py-10 space-y-8 md:space-y-12 px-4 md:px-0">
+          <div className="text-center space-y-3 md:space-y-4">
+            <h1 className="text-4xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
+            <div className="space-y-1 md:space-y-2">
+                <p className="text-xl md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
+                <p className="text-xl md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
+            </div>
           </div>
 
           <div className="relative w-full aspect-[4/3] flex items-center justify-center animate-float">
              <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="w-full h-full object-contain" />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 px-4">
+          <div className="grid grid-cols-1 gap-4 md:gap-6 px-2 md:px-4">
             {[
               { icon: '✨', title: '魅力原型', desc: '分析你在戀愛市場中的真實定位', color: 'rgba(244, 63, 94, 0.4)' },
               { icon: '📊', title: '多維雷達', desc: '將外型、社交、心態數據化呈現', color: 'rgba(59, 130, 246, 0.4)' },
               { icon: '🌱', title: '進化指南', desc: '獲得個人深度報告與建議', color: 'rgba(16, 185, 129, 0.4)' }
             ].map((feature, i) => (
-              <div key={i} className="flex items-center space-x-6 bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group cursor-default">
-                <div className="text-6xl transition-transform duration-300 group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 6px ${feature.color})` }}>{feature.icon}</div>
+              <div key={i} className="flex items-center space-x-4 md:space-x-6 bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group cursor-default">
+                <div className="text-4xl md:text-6xl transition-transform duration-300 group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 6px ${feature.color})` }}>{feature.icon}</div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-800">{feature.title}</h3>
-                  <p className="text-lg text-slate-400 font-medium">{feature.desc}</p>
+                  <h3 className="text-xl md:text-2xl font-black text-slate-800">{feature.title}</h3>
+                  <p className="text-sm md:text-lg text-slate-400 font-medium">{feature.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="px-4">
+          <div className="px-2 md:px-4">
             <button 
               onClick={handleStart} 
-              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-7 rounded-[2.5rem] text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
+              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-5 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
             >
               <span className="relative z-10">啟動深度分析</span>
             </button>
@@ -386,7 +388,7 @@ const App: React.FC = () => {
       )}
 
       {step === 'quiz' && (
-        <div className="w-full space-y-6 py-4 px-4 md:px-0">
+        <div className="w-full space-y-4 md:space-y-6 py-2 md:py-4 px-4 md:px-0">
           {/* 進度條 */}
           <div className="w-full px-2">
             <div className="flex justify-between text-sm text-slate-400 mb-2 font-black uppercase tracking-widest">
@@ -413,19 +415,21 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="bg-white p-5 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8 min-h-[200px] flex items-center justify-center">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-800 text-center leading-relaxed px-4">{QUESTIONS[currentIdx].text}</h2>
+              <div className="space-y-4 md:space-y-6">
+                {/* 題目卡片：縮小手機版 padding 與 min-height */}
+                <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 min-h-[160px] md:min-h-[200px] flex items-center justify-center">
+                  <h2 className="text-xl md:text-3xl font-black text-slate-800 text-center leading-relaxed px-1 md:px-4">{QUESTIONS[currentIdx].text}</h2>
                 </div>
                 
-                <div className="space-y-3">
+                {/* 選項區域：縮小手機版間距 */}
+                <div className="space-y-2.5 md:space-y-3">
                   {OPTIONS.map((opt, idx) => {
                     const isSelected = answers[QUESTIONS[currentIdx].id] === opt.value;
                     return (
                       <button 
                         key={opt.value} 
                         onClick={() => handleAnswer(opt.value)} 
-                        className={`group w-full p-3.5 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
+                        className={`group w-full p-3.5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
                           ${isSelected 
                             ? 'border-blue-600 bg-blue-50 shadow-md scale-[0.98]' 
                             : 'border-slate-50 bg-white hover:border-blue-200 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md'
@@ -433,6 +437,7 @@ const App: React.FC = () => {
                         `}
                         style={{ animationDelay: `${idx * 70}ms` }}
                       >
+                        {/* 選項文字：縮小手機版字體 */}
                         <span className={`font-bold text-lg md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>
                           {opt.label}
                         </span>
@@ -448,8 +453,8 @@ const App: React.FC = () => {
                   })}
                 </div>
 
-                <div className="flex items-center px-2 pt-4">
-                  <button onClick={prevStep} className="w-full py-4 rounded-2xl font-bold text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">回到上一題</button>
+                <div className="flex items-center px-2 pt-2 md:pt-4">
+                  <button onClick={prevStep} className="w-full py-3 md:py-4 rounded-2xl font-bold text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">回到上一題</button>
                 </div>
               </div>
             )}
@@ -545,7 +550,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col items-start space-y-1 mb-2">
                    <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
                 </div>
-                <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-2">{activePersona.title}</h2>
+                <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-2">{activePersona.title}</h2>
                 <p className="text-2xl md:text-3xl font-medium text-white/90 italic">{aiAnalysis.personaOverview || activePersona.subtitle}</p>
               </div>
             </div>
@@ -555,11 +560,12 @@ const App: React.FC = () => {
                   <span key={tag} className="px-6 py-3 bg-slate-100 text-slate-800 rounded-full text-xl font-black border border-slate-200 animate-pop-in" style={{ animationDelay: `${i * 100 + 300}ms` }}># {tag}</span>
                 ))}
               </div>
-              <div className="p-5 bg-blue-50/50 rounded-[2rem] border border-blue-100">
+              <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100">
                  <h5 className="text-blue-600 font-black text-2xl uppercase tracking-widest mb-3">人格診斷分析</h5>
                  <div className="space-y-6">
+                    {/* 修正：將這裡的 text-xl 改為 text-lg，縮小內文字體 */}
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-slate-800 text-2xl md:text-2xl leading-relaxed font-bold">
+                        <p key={idx} className="text-slate-800 text-lg md:text-xl leading-relaxed font-bold">
                             {line}
                         </p>
                     ))}
@@ -569,7 +575,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="px-4 md:px-0 space-y-10">
-            <div className="bg-white p-5 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white p-6 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up" style={{ animationDelay: '200ms' }}>
                 <div className="text-4xl md:text-5xl font-black text-slate-800 mb-8">總體魅力：<span className="text-blue-600">{localSummary.totalScore}</span> <span className="text-slate-300 text-xl">/ 48</span></div>
                 <div className="h-[20rem] md:h-[24rem] mb-6"><canvas ref={radarChartRef}></canvas></div>
             </div>
@@ -615,8 +621,9 @@ const App: React.FC = () => {
                         <h3 className="text-3xl font-black text-amber-400 tracking-tight">教練總結</h3>
                     </div>
                     <div className="space-y-10">
+                        {/* 修正：將這裡的 text-lg 改為 text-base，縮小上半部教練建議字體，以區隔下方重點文案 */}
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-2xl md:text-2xl leading-relaxed font-medium text-white text-justify">
+                        <p key={idx} className="text-base md:text-lg leading-relaxed font-medium text-white text-justify">
                             {line}
                         </p>
                         ))}
@@ -636,16 +643,22 @@ const App: React.FC = () => {
 
                     <div className="space-y-6">
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-lg md:text-2xl leading-relaxed font-medium text-white text-justify">
+                            <p key={index} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
                                 {paragraph}
                             </p>
                         ))}
                     </div>
 
                     </div>
-                    <button onClick={() => window.open('https://www.menspalais.com', '_blank')} className="group w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-6 rounded-[2rem] text-2xl md:text-3xl shadow-xl shadow-amber-900/20 flex items-center justify-center space-x-3 transition-all transform active:scale-95 mt-4 hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
+                    <button onClick={() => window.open('https://www.menspalais.com', '_blank')} className="group w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 md:py-6 rounded-[2rem] text-2xl md:text-3xl shadow-xl shadow-amber-900/20 flex items-center justify-center space-x-2 md:space-x-3 transition-all transform active:scale-95 mt-4 hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
                        <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></span>
-                       <span>{EXPERT_CONFIG.ctaButtonText}</span>
+                       
+                       {/* 修正：強制分行結構，確保手機版文字不會亂跑 */}
+                       <div className="flex flex-col items-center justify-center leading-none py-1">
+                           <span className="text-xl md:text-3xl font-black tracking-tight">查看 5 週變身計畫</span>
+                           <span className="text-sm md:text-lg font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
+                       </div>
+
                        <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                     </button>
                     <p className="text-center text-slate-500 text-white font-bold text-lg">⚠️ 名額有限，優先卡位</p>
