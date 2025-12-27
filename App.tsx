@@ -645,7 +645,7 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         {/* 修正：標題放大 (text-4xl md:text-5xl) */}
+                         {/* 修正：標題放大 (text-4xl md:text-4xl) */}
                          <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
@@ -664,7 +664,7 @@ const App: React.FC = () => {
                        
                        <div className="flex flex-col items-center justify-center leading-none py-1">
                            <span className="text-xl md:text-3xl font-black tracking-tight">查看 5 週變身計畫</span>
-                           <span className="text-sm md:text-lg font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
+                           <span className="text-sm md:text-xl font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
                        </div>
 
                        <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
