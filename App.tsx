@@ -364,7 +364,7 @@ const App: React.FC = () => {
               { icon: '📊', title: '多維雷達', desc: '將外型、社交、心態數據化呈現', color: 'rgba(59, 130, 246, 0.4)' },
               { icon: '🌱', title: '進化指南', desc: '獲得個人深度報告與建議', color: 'rgba(16, 185, 129, 0.4)' }
             ].map((feature, i) => (
-              <div key={i} className="flex items-center space-x-6 bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group cursor-default">
+              <div key={i} className="flex items-center space-x-6 bg-white p-5 rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group cursor-default">
                 <div className="text-6xl transition-transform duration-300 group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 6px ${feature.color})` }}>{feature.icon}</div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-800">{feature.title}</h3>
@@ -414,7 +414,7 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8 min-h-[200px] flex items-center justify-center">
+                <div className="bg-white p-5 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-100 space-y-8 min-h-[200px] flex items-center justify-center">
                   <h2 className="text-2xl md:text-3xl font-black text-slate-800 text-center leading-relaxed px-4">{QUESTIONS[currentIdx].text}</h2>
                 </div>
                 
@@ -425,7 +425,7 @@ const App: React.FC = () => {
                       <button 
                         key={opt.value} 
                         onClick={() => handleAnswer(opt.value)} 
-                        className={`group w-full p-5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
+                        className={`group w-full p-5 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
                           ${isSelected 
                             ? 'border-blue-600 bg-blue-50 shadow-md scale-[0.98]' 
                             : 'border-slate-50 bg-white hover:border-blue-200 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md'
@@ -555,7 +555,7 @@ const App: React.FC = () => {
                   <span key={tag} className="px-6 py-3 bg-slate-100 text-slate-800 rounded-full text-xl font-black border border-slate-200 animate-pop-in" style={{ animationDelay: `${i * 100 + 300}ms` }}># {tag}</span>
                 ))}
               </div>
-              <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100">
+              <div className="p-5 bg-blue-50/50 rounded-[2rem] border border-blue-100">
                  <h5 className="text-blue-600 font-black text-2xl uppercase tracking-widest mb-3">人格診斷分析</h5>
                  <div className="space-y-6">
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
@@ -569,7 +569,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="px-4 md:px-0 space-y-10">
-            <div className="bg-white p-6 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white p-5 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up" style={{ animationDelay: '200ms' }}>
                 <div className="text-4xl md:text-5xl font-black text-slate-800 mb-8">總體魅力：<span className="text-blue-600">{localSummary.totalScore}</span> <span className="text-slate-300 text-xl">/ 48</span></div>
                 <div className="h-[20rem] md:h-[24rem] mb-6"><canvas ref={radarChartRef}></canvas></div>
             </div>
