@@ -667,7 +667,7 @@ const App: React.FC = () => {
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
                          {/* 修正：標題放大 (text-4xl md:text-5xl) */}
-                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
+                         <h4 className="text-center text-white font-bold text-3xl md:text-3xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-6">
