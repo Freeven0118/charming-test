@@ -631,12 +631,12 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-6">從「知道」到「做到」</h4>
+                         <h4 className="text-center text-white font-bold text-3xl md:text-4xl tracking-tight mb-6">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-6">
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-2xl md:text-3xl leading-relaxed font-bold text-white text-justify">
+                            <p key={index} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
                                 {paragraph}
                             </p>
                         ))}
