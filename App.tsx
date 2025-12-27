@@ -425,7 +425,7 @@ const App: React.FC = () => {
                       <button 
                         key={opt.value} 
                         onClick={() => handleAnswer(opt.value)} 
-                        className={`group w-full p-5 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
+                        className={`group w-full p-3.5 md:p-5 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
                           ${isSelected 
                             ? 'border-blue-600 bg-blue-50 shadow-md scale-[0.98]' 
                             : 'border-slate-50 bg-white hover:border-blue-200 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md'
@@ -433,7 +433,7 @@ const App: React.FC = () => {
                         `}
                         style={{ animationDelay: `${idx * 70}ms` }}
                       >
-                        <span className={`font-bold text-xl md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>
+                        <span className={`font-bold text-lg md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>
                           {opt.label}
                         </span>
                         
