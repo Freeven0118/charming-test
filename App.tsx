@@ -371,7 +371,8 @@ const App: React.FC = () => {
 
           {/* 調整：縮小手機版圖片高度 (h-[140px]) */}
           <div className="relative w-full h-[140px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
-             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain h-full w-auto" />
+             {/* 修正：使用用戶指定的 JPG 圖片 */}
+             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg" className="object-contain h-full w-auto" />
           </div>
 
           <div className="px-2 md:px-4 w-full">
@@ -645,8 +646,8 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         {/* 修正：標題放大 (text-3xl md:text-3xl) */}
-                         <h4 className="text-center text-white font-bold text-3xl md:text-4xl tracking-tight mb-8">從「知道」到「做到」</h4>
+                         {/* 修正：標題放大 (text-4xl md:text-5xl) */}
+                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-6">
@@ -664,7 +665,7 @@ const App: React.FC = () => {
                        
                        <div className="flex flex-col items-center justify-center leading-none py-1">
                            <span className="text-xl md:text-3xl font-black tracking-tight">查看 5 週變身計畫</span>
-                           <span className="text-sm md:text-xl font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
+                           <span className="text-sm md:text-lg font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
                        </div>
 
                        <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
