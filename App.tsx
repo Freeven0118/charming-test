@@ -289,7 +289,7 @@ const App: React.FC = () => {
                 min: 0, max: 12, ticks: { display: false, stepSize: 3 },
                 // 調整 pointLabels 設定：放大字體，加深顏色
                 pointLabels: { 
-                    font: { size: labelFontSize, weight: '900', family: "'Noto Sans TC', sans-serif" }, 
+                    font: { size: labelFontSize, weight: 'bold', family: "'Noto Sans TC', sans-serif" }, 
                     color: '#334155' // 使用更深的 Slate-700/800 色調提升閱讀性
                 }
               } 
