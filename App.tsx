@@ -545,7 +545,7 @@ const App: React.FC = () => {
                 <div className="flex flex-col items-start space-y-1 mb-2">
                    <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
                 </div>
-                <h2 className="text-5xl md:text-6xl font-black tracking-tight mb-2">{activePersona.title}</h2>
+                <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-2">{activePersona.title}</h2>
                 <p className="text-2xl md:text-3xl font-medium text-white/90 italic">{aiAnalysis.personaOverview || activePersona.subtitle}</p>
               </div>
             </div>
