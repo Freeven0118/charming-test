@@ -41,6 +41,20 @@ const App: React.FC = () => {
   // 用於邏輯的狀態 (不顯示於 UI)
   const [lastError, setLastError] = useState<string>('');
 
+  // 新增：文字格式化工具函數 (解析 **重點** 語法)
+  const renderFormattedText = (text: string, highlightClass: string = 'text-amber-400') => {
+    if (!text) return null;
+    return text.split('**').map((part, index) => 
+      index % 2 === 1 ? (
+        <span key={index} className={`${highlightClass} font-black`}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
   const handleStart = () => {
     setStep('quiz');
     setCurrentIdx(0);
@@ -131,7 +145,7 @@ const App: React.FC = () => {
       socialAnalysis: "社群媒體是您的名片，試著多展現生活感。",
       interactionAnalysis: "主動一點，故事就會開始。",
       mindsetAnalysis: "心態決定高度，保持自信。",
-      coachGeneralAdvice: "這是一份基礎戰略報告。請參考上方的雷達圖與維度分析，這依然是你提升魅力的重要起點。若需完整的 AI 深度解析，建議稍後再試。"
+      coachGeneralAdvice: "這是一份基礎戰略報告。請參考上方的雷達圖與維度分析，這依然是你提升魅力的重要起點。若需 **完整的 AI 深度解析**，建議稍後再試。"
     };
 
     if (forceFallback) {
@@ -177,25 +191,30 @@ const App: React.FC = () => {
         任務指令：
         請分析以上數據，並嚴格依照下方的 JSON 格式回傳報告。不要包含任何 Markdown 格式標記（如 \`\`\`json）。
 
+        **寫作風格重點（請在輸出文字中加入標記）：**
+        當你想強調某個重點、關鍵字或強烈建議時，請使用 \`**重點文字**\` 的格式（前後加兩個星號）。
+        例如：「你缺乏的不是外表，而是**主動出擊的勇氣**。」
+        我們的前端系統會自動將其轉換為**高亮粗體字**。請在每個區塊（分析、建議）中都適度使用這個功能來強調重點。
+
         **核心分析邏輯（非常重要，請務必遵守）：**
         1. **「行動與互動」的多維歸因**：
            - 若使用者在「行動與互動」分數低（很少社交、沒有穩定聊天對象），**絕對不要**只單純批評他「不夠努力」或「太被動」。
            - **必須考量「環境因素」**：很有可能他的生活圈全是男性（如工程師），根本沒有異性可以互動。
-           - 在分析時請使用具同理心的判斷，例如：「這分數偏低，除了可能是不敢主動，更有可能是你的生活圈本身就『極度缺乏異性』，導致你有力無處使。」
+           - 在分析時請使用具同理心的判斷。
         
         2. **處理「我不確定」的選項**：
-           - 若使用者選擇「我不確定」，代表他對該領域缺乏認知（例如不知道自己適合什麼髮型），而非單純做得不好。建議方向應是「尋找專業諮詢」或「開始嘗試」，而非批評他懶惰。
+           - 若使用者選擇「我不確定」，代表他對該領域缺乏認知，而非單純做得不好。建議方向應是「尋找專業諮詢」或「開始嘗試」。
 
         必須回傳的 JSON 結構範本：
         {
           "selectedPersonaId": "從 [charmer, statue, hustler, neighbor, sage, pioneer] 中選一個最貼切的 ID",
-          "personaExplanation": "根據他的具體作答內容，深度分析為什麼他符合這個人格原型 (約 150-200 字，必須客製化分析，嚴禁只抄寫人格定義。請務必將內容分為兩至三段，並在段落間使用 \\n 換行)",
+          "personaExplanation": "根據他的具體作答內容，深度分析為什麼他符合這個人格原型 (約 150-200 字，分兩至三段，段落間用 \\n 換行，請適度使用 **重點** 標記)",
           "personaOverview": "一句話總結他的現狀",
-          "appearanceAnalysis": "針對形象外表的具體分析與建議 (約 50 字)",
-          "socialAnalysis": "針對社群形象的具體分析與建議 (約 50 字)",
-          "interactionAnalysis": "針對行動與互動的具體分析與建議。請務必區分是『環境問題(沒魚)』還是『技巧問題(不會釣)』的可能性。(約 50 字)",
-          "mindsetAnalysis": "針對心態與習慣的具體分析與建議 (約 50 字)",
-          "coachGeneralAdvice": "教練的總結戰略建議 (約 250-350 字，請務必分段，適度換行)"
+          "appearanceAnalysis": "針對形象外表的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
+          "socialAnalysis": "針對社群形象的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
+          "interactionAnalysis": "針對行動與互動的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
+          "mindsetAnalysis": "針對心態與習慣的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
+          "coachGeneralAdvice": "教練的總結戰略建議 (約 250-350 字，請務必分段，使用 \\n 換行。**請大量使用重點標記來強調關鍵心法**)"
         }
 
         關於「coachGeneralAdvice」（教練總結）的撰寫風格嚴格要求：
@@ -207,7 +226,7 @@ const App: React.FC = () => {
         3. **【關鍵】：結尾的導流鋪陳**
            - 在建議的最後一段，你必須明確指出：**「知道問題在哪裡」跟「能夠解決問題」是兩回事**。
            - 告訴他，如果缺乏一套有系統的計畫，憑感覺摸索很容易重蹈覆轍。
-           - 用一句話引導他去看下方的教練計畫（不要直接說點按鈕，而是說『我為像你這樣想改變的人準備了一套系統，詳情在下方』）。
+           - 用一句話引導他去看下方的教練計畫。
 
         關於 Persona 選擇規則：
         - 若總分 > 38 且各維度均衡，selectedPersonaId 必須是 'charmer'。
@@ -371,8 +390,7 @@ const App: React.FC = () => {
 
           {/* 調整：縮小手機版圖片高度 (h-[140px]) */}
           <div className="relative w-full h-[140px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
-             {/* 修正：使用用戶指定的 JPG 圖片 */}
-             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg" className="object-contain h-full w-auto" />
+             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain h-full w-auto" />
           </div>
 
           <div className="px-2 md:px-4 w-full">
@@ -575,7 +593,8 @@ const App: React.FC = () => {
                  <div className="space-y-6">
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                         <p key={idx} className="text-slate-800 text-lg md:text-xl leading-relaxed font-bold">
-                            {line}
+                            {/* 使用文字格式化函數，並傳入適合淺色背景的強調色 (Blue-700) */}
+                            {renderFormattedText(line, 'text-blue-700')}
                         </p>
                     ))}
                  </div>
@@ -605,7 +624,8 @@ const App: React.FC = () => {
                             </span>
                         </div>
                         <p className="text-lg md:text-xl text-slate-600 leading-relaxed pl-4 text-justify font-medium">
-                        {getAiAnalysisForCategory(item.category)}
+                        {/* 使用文字格式化函數，並傳入適合白底的強調色 (Slate-900) */}
+                        {renderFormattedText(getAiAnalysisForCategory(item.category), 'text-slate-900')}
                         </p>
                     </div>
                     ))}
@@ -630,10 +650,10 @@ const App: React.FC = () => {
                         <h3 className="text-3xl font-black text-amber-400 tracking-tight">教練總結</h3>
                     </div>
                     <div className="space-y-10">
-                        {/* 修正：分隔線上方的字放大 (text-lg md:text-xl) */}
+                        {/* 修正：使用 renderFormattedText，讓深色背景上的強調字顯示為亮金色 (Amber-400) */}
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                         <p key={idx} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
-                            {line}
+                            {renderFormattedText(line, 'text-amber-400')}
                         </p>
                         ))}
                     </div>
@@ -651,10 +671,10 @@ const App: React.FC = () => {
                     </div>
 
                     <div className="space-y-6">
-                        {/* 修正：分隔線下方的字放大 (text-xl md:text-2xl) */}
+                        {/* 修正：靜態描述文字也支援格式化，讓重點更突出 */}
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
                             <p key={index} className="text-xl md:text-2xl leading-relaxed font-medium text-white text-justify">
-                                {paragraph}
+                                {renderFormattedText(paragraph, 'text-amber-400')}
                             </p>
                         ))}
                     </div>
