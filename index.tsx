@@ -11,14 +11,14 @@
     <meta property="og:url" content="https://charming-test.vercel.app/">
     <meta property="og:title" content="脫單力檢核分析 | 專為 25-35 歲男性設計">
     <meta property="og:description" content="快速找出你的脫單阻礙。針對外型、社群、行動、心態四個面向的深度分析，領取你的專屬教練建議。">
-    <meta property="og:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg">
+    <meta property="og:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg">
 
     <!-- Twitter 設定 -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://charming-test.vercel.app/">
     <meta property="twitter:title" content="脫單力檢核分析 | 專為 25-35 歲男性設計">
     <meta property="twitter:description" content="快速找出你的脫單阻礙。針對外型、社群、行動、心態四個面向的深度分析。">
-    <meta property="twitter:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg">
+    <meta property="twitter:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg">
 
     <title>脫單力檢核分析</title>
     
