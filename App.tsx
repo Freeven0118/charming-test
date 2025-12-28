@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, CATEGORY_IMAGES } from './constants';
+import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG } from './constants';
 import { Category } from './types';
 import Chart from 'chart.js/auto';
 
@@ -98,17 +98,24 @@ const App: React.FC = () => {
     const categories: Category[] = ['形象外表', '社群形象', '行動與互動', '心態與習慣'];
     const summary = categories.map(cat => {
       const catQuestions = QUESTIONS.filter(q => q.category === cat);
-      // 計算分數時，將 -1 (我不確定) 視為 0 分處理，但在傳給 AI 時會保留 "我不確定" 的語意
+      // 計算分數時，將 -1 (我不確定) 視為 0 分處理
       const score = catQuestions.reduce((acc, q) => {
           const val = answers[q.id];
           return acc + (val === -1 ? 0 : (val || 0));
       }, 0);
       
       let level: '紅燈' | '黃燈' | '綠燈' = '紅燈';
-      let color = '#ef4444'; 
-      if (score >= 9) { level = '綠燈'; color = '#22c55e'; }
-      else if (score >= 5) { level = '黃燈'; color = '#f97316'; }
-      return { category: cat, score, level, color, description: CATEGORY_INFO[cat].description, suggestion: CATEGORY_INFO[cat].suggestions[level] };
+      // 每一類 4 題，每題最高 3 分，滿分 12 分
+      if (score >= 9) { level = '綠燈'; }
+      else if (score >= 5) { level = '黃燈'; }
+      
+      return { 
+        category: cat, 
+        score, 
+        level, 
+        description: CATEGORY_INFO[cat].description, 
+        suggestion: CATEGORY_INFO[cat].suggestions[level] 
+      };
     });
 
     const totalScore = summary.reduce((acc, curr) => acc + curr.score, 0);
@@ -140,7 +147,7 @@ const App: React.FC = () => {
       personaExplanation: forceFallback 
         ? "⚠️ 這是「基礎分析模式」的報告。因目前 AI 連線異常，系統直接根據您的分數區間進行診斷。" 
         : "⚠️ AI 連線忙碌中，這是根據您的分數生成的基礎報告。",
-      personaOverview: "您的魅力潛力巨大，建議重新整理頁面再次進行深度分析。",
+      personaOverview: "您的潛力巨大，建議重新整理頁面再次進行深度分析。",
       appearanceAnalysis: "保持整潔，找出適合自己的風格是第一步。",
       socialAnalysis: "社群媒體是您的名片，試著多展現生活感。",
       interactionAnalysis: "主動一點，故事就會開始。",
@@ -158,12 +165,11 @@ const App: React.FC = () => {
     }
 
     // 優先使用手動輸入的 Key，否則使用環境變數
-    // process.env.API_KEY 會在 build time 被 vite 替換為字串
     const apiKeyToUse = overrideKey || customApiKey || process.env.API_KEY;
 
     if (!apiKeyToUse) {
       console.error("API Key is missing.");
-      setLastError("系統設定：請輸入 API Key"); // 修改錯誤訊息為引導訊息
+      setLastError("系統設定：請輸入 API Key");
       setShowKeyInput(true);
       setIsAiLoading(false);
       aiFetchingRef.current = false;
@@ -193,17 +199,12 @@ const App: React.FC = () => {
 
         **寫作風格重點（請在輸出文字中加入標記）：**
         當你想強調某個重點、關鍵字或強烈建議時，請使用 \`**重點文字**\` 的格式（前後加兩個星號）。
-        例如：「你缺乏的不是外表，而是**主動出擊的勇氣**。」
-        我們的前端系統會自動將其轉換為**高亮粗體字**。請在每個區塊（分析、建議）中都適度使用這個功能來強調重點。
-
-        **核心分析邏輯（非常重要，請務必遵守）：**
-        1. **「行動與互動」的多維歸因**：
-           - 若使用者在「行動與互動」分數低（很少社交、沒有穩定聊天對象），**絕對不要**只單純批評他「不夠努力」或「太被動」。
-           - **必須考量「環境因素」**：很有可能他的生活圈全是男性（如工程師），根本沒有異性可以互動。
-           - 在分析時請使用具同理心的判斷。
         
-        2. **處理「我不確定」的選項**：
-           - 若使用者選擇「我不確定」，代表他對該領域缺乏認知，而非單純做得不好。建議方向應是「尋找專業諮詢」或「開始嘗試」。
+        **語氣調整：**
+        請扮演一位「溫暖、堅定且值得信賴的導師」。
+        1. **收斂攻擊性**：請絕對避免使用帶有嘲諷、羞辱感或過度嚴厲的譬喻。
+        2. **建設性視角**：請以「我看見了你的潛力，但可惜目前被 [問題點] 阻擋了光芒」的角度切入。
+        3. **溫暖的專業**：請用正面、肯定的詞彙來包裹你的建議。
 
         必須回傳的 JSON 結構範本：
         {
@@ -214,19 +215,8 @@ const App: React.FC = () => {
           "socialAnalysis": "針對社群形象的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
           "interactionAnalysis": "針對行動與互動的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
           "mindsetAnalysis": "針對心態與習慣的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
-          "coachGeneralAdvice": "教練的總結戰略建議 (約 250-350 字，請務必分段，使用 \\n 換行。**請大量使用重點標記來強調關鍵心法**)"
+          "coachGeneralAdvice": "教練的總結戰略建議 (約 250-350 字，請務必分段，使用 \\n 換行。**請大量使用重點標記來強調關鍵心法**。結尾必須引導他去看下方的教練計畫)"
         }
-
-        關於「coachGeneralAdvice」（教練總結）的撰寫風格嚴格要求：
-        1. **戰略大於執行**：嚴格禁止提供瑣碎的「具體執行事項」（如：去剪頭髮、買保養品）。這些細節留給課程。你要給的是「宏觀戰略」。
-        2. **語氣口吻**：
-           - 像一位**有經驗且溫暖的兄長**，語氣**平穩、堅定但帶有溫度**。
-           - **不要過度攻擊**，重點在於「引導」與「建設性」。
-           - **排版要求**：請在不同觀點或段落間，使用 \`\\n\` 進行明確的換行。我們會在前端將每一段分開顯示，所以請確保段落之間有清楚的邏輯區隔。
-        3. **【關鍵】：結尾的導流鋪陳**
-           - 在建議的最後一段，你必須明確指出：**「知道問題在哪裡」跟「能夠解決問題」是兩回事**。
-           - 告訴他，如果缺乏一套有系統的計畫，憑感覺摸索很容易重蹈覆轍。
-           - 用一句話引導他去看下方的教練計畫。
 
         關於 Persona 選擇規則：
         - 若總分 > 38 且各維度均衡，selectedPersonaId 必須是 'charmer'。
@@ -249,14 +239,12 @@ const App: React.FC = () => {
     } catch (e: any) {
       console.error("AI Analysis Error:", e);
       let errorMsg = "連線忙碌中";
-      
       const errString = e.toString();
-      // 處理常見錯誤
       if (errString.includes("400") && errString.includes("API key")) {
           errorMsg = "⚠️ API Key 無效";
           setShowKeyInput(true);
       } else if (errString.includes("429")) {
-          errorMsg = "⚠️ 請求次數過多 (Quota Exceeded)";
+          errorMsg = "⚠️ 請求次數過多";
           setShowKeyInput(true);
       } else if (errString.includes("500") || errString.includes("503")) {
           errorMsg = "⚠️ 伺服器繁忙";
@@ -280,9 +268,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (step === 'result' && localSummary && radarChartRef.current) {
       const ctx = radarChartRef.current.getContext('2d');
-      // 判斷是否為手機尺寸 (小於 768px)
       const isMobile = window.innerWidth < 768;
-      // 設定字體大小：手機 16px，電腦 20px
       const labelFontSize = isMobile ? 16 : 20;
 
       if (ctx) {
@@ -293,7 +279,7 @@ const App: React.FC = () => {
           data: {
             labels: localSummary.summary.map(r => r.category),
             datasets: [{
-              label: '魅力值',
+              label: '脫單力',
               data: localSummary.summary.map(r => r.score),
               backgroundColor: 'rgba(59, 130, 246, 0.2)',
               borderColor: 'rgba(59, 130, 246, 1)',
@@ -305,11 +291,10 @@ const App: React.FC = () => {
           options: {
             scales: { 
               r: { 
-                min: 0, max: 12, ticks: { display: false, stepSize: 3 },
-                // 調整 pointLabels 設定：放大字體，加深顏色
+                min: 0, max: 12, ticks: { display: false, stepSize: 3 }, // 滿分 12
                 pointLabels: { 
                     font: { size: labelFontSize, weight: 'bold', family: "'Noto Sans TC', sans-serif" }, 
-                    color: '#334155' // 使用更深的 Slate-700/800 色調提升閱讀性
+                    color: '#334155' 
                 }
               } 
             },
@@ -332,6 +317,7 @@ const App: React.FC = () => {
     if (isIntroMode) { setIsIntroMode(false); return; }
     if (currentIdx < QUESTIONS.length - 1) {
       const nextIdx = currentIdx + 1;
+      // 這裡維持原邏輯：每 4 題一個分類
       if (nextIdx % 4 === 0) setIsIntroMode(true);
       setCurrentIdx(nextIdx);
     } else {
@@ -373,28 +359,22 @@ const App: React.FC = () => {
   };
 
   return (
-    // 修改：移除手機版頂部留白 (py-0)，確保結果頁圖片可以置頂
     <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-0 md:py-8">
       {step === 'hero' && (
-        // 調整：縮減手機版 padding (py-6) 與間距 (space-y-4)，對齊方式改為 justify-start
         <div className="flex-1 flex flex-col justify-start md:justify-center w-full animate-fade-in py-6 md:py-10 space-y-4 md:space-y-12 px-4 md:px-0">
-          <div className="text-center space-y-2 md:space-y-4">
-            {/* 調整：縮小手機版標題 (text-3xl) */}
-            <h1 className="text-3xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight">脫單力檢核分析</h1>
+          <div className="text-center space-y-2 md:space-y-4 relative z-20">
+            <h1 className="text-3xl md:text-7xl font-black text-slate-900 tracking-tighter leading-normal py-1">脫單力檢核分析</h1>
             <div className="space-y-1 md:space-y-2">
-                {/* 調整：縮小手機版副標題 (text-lg) */}
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
             </div>
           </div>
 
-          {/* 調整：縮小手機版圖片高度 (h-[140px]) */}
-          <div className="relative w-full h-[140px] md:h-auto md:aspect-[4/3] flex items-center justify-center animate-float overflow-hidden">
-             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain h-full w-auto" />
+          <div className="relative w-full aspect-[16/9] flex items-center justify-center animate-float overflow-visible">
+             <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain w-full h-full drop-shadow-2xl" />
           </div>
 
-          <div className="px-2 md:px-4 w-full">
-            {/* 調整：縮小手機版按鈕 padding (py-4) */}
+          <div className="px-2 md:px-4 w-full relative z-20">
             <button 
               onClick={handleStart} 
               className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
@@ -422,9 +402,7 @@ const App: React.FC = () => {
       )}
 
       {step === 'quiz' && (
-        // 補回 quiz 的頂部留白
         <div className="w-full space-y-4 md:space-y-6 py-6 md:py-4 px-4 md:px-0">
-          {/* 進度條 */}
           <div className="w-full px-2">
             <div className="flex justify-between text-sm text-slate-400 mb-2 font-black uppercase tracking-widest">
               <span>{QUESTIONS[currentIdx].category}</span>
@@ -437,9 +415,9 @@ const App: React.FC = () => {
 
           <div key={isIntroMode ? `intro-${currentIdx}` : `q-${currentIdx}`} className="animate-slide-up">
             {isIntroMode ? (
-              // 修改：縮小手機版的 padding (p-6), Icon (text-5xl), Title (text-3xl), Desc (text-lg)
               <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center">
                 <div className="mb-4 md:mb-6 text-5xl md:text-7xl animate-bounce">
+                  {/* 圖標映射更新：0:形象, 4:社群, 8:互動, 12:心態 */}
                   {currentIdx === 0 ? '👔' : currentIdx === 4 ? '📸' : currentIdx === 8 ? '💬' : '🔥'}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-black text-slate-800 mb-2 md:mb-4">{QUESTIONS[currentIdx].category}</h2>
@@ -501,7 +479,7 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-slate-800">{Math.floor(fakeProgress)}%</div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">診斷引擎正在啟動 </h2>
+                <h2 className="text-4xl font-black text-slate-900 tracking-tight">診斷引擎正在啟動</h2>
                 <div className="flex flex-col space-y-2 text-xl text-slate-500 font-bold">
                   <span className={`transition-all duration-500 ${fakeProgress > 15 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 正在分析你的作答細節...</span>
                   <span className={`transition-all duration-500 ${fakeProgress > 45 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 比對 社交成功案例...</span>
@@ -521,7 +499,7 @@ const App: React.FC = () => {
                     </h3>
                     <p className="text-slate-500 font-medium text-lg">
                         {showKeyInput 
-                          ? "此網站尚未配置 Gemini API Key。請網站管理員至 Vercel 後台完成設定。" 
+                          ? "此網站尚未配置 Gemini API Key。" 
                           : lastError}
                     </p>
                 </div>
@@ -529,7 +507,6 @@ const App: React.FC = () => {
                    <div className="space-y-4 pt-4">
                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left space-y-2">
                           <p className="text-sm font-bold text-slate-700">【臨時測試通道】</p>
-                          <p className="text-xs text-slate-500">若您是管理員，可在此臨時輸入 Key 進行測試 (不會儲存，重新整理後需再次輸入)。</p>
                           <input 
                             type="text" 
                             value={customApiKey}
@@ -565,22 +542,18 @@ const App: React.FC = () => {
       )}
 
       {step === 'result' && localSummary && aiAnalysis && (
-        // 結果頁不需要額外的 padding，確保圖片置頂
         <div className="w-full space-y-10 animate-fade-in pb-12">
-          {/* 1. 人格卡片區塊 - 優化圖片比例與文字大小 */}
           <div className="bg-white rounded-b-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden border-b md:border border-slate-100 animate-slide-up" style={{ animationDelay: '0ms' }}>
-            {/* 修改：aspect-[3/4] 為直式比例，確保臉部露出，object-top 確保頭部對齊 */}
             <div className="relative aspect-[3/4] md:aspect-[21/9] flex items-end justify-center bg-gray-900">
               <img src={activePersona.imageUrl} alt={activePersona.title} className="w-full h-full object-cover object-top" />
-              {/* 漸層與文字：文字縮小，避免遮擋 */}
               <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white bg-gradient-to-t from-black/90 via-black/50 to-transparent w-full pt-24 md:pt-32">
                 <div className="flex flex-col items-start space-y-1 mb-2">
                    <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
                 </div>
-                {/* 標題縮小：text-3xl (手機) */}
                 <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-2 leading-tight">{activePersona.title}</h2>
-                {/* 副標題縮小：text-lg (手機) */}
-                <p className="text-lg md:text-3xl font-medium text-white/90 italic leading-snug">{aiAnalysis.personaOverview || activePersona.subtitle}</p>
+                <p className="text-lg md:text-3xl font-medium text-white/90 italic leading-snug">
+                  {renderFormattedText(aiAnalysis.personaOverview || activePersona.subtitle, 'text-amber-400')}
+                </p>
               </div>
             </div>
             <div className="p-8 md:p-10 space-y-8">
@@ -594,7 +567,6 @@ const App: React.FC = () => {
                  <div className="space-y-6">
                     {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
                         <p key={idx} className="text-slate-800 text-lg md:text-xl leading-relaxed font-bold">
-                            {/* 使用文字格式化函數，並傳入適合淺色背景的強調色 (Blue-700) */}
                             {renderFormattedText(line, 'text-blue-700')}
                         </p>
                     ))}
@@ -625,7 +597,6 @@ const App: React.FC = () => {
                             </span>
                         </div>
                         <p className="text-lg md:text-xl text-slate-600 leading-relaxed pl-4 text-justify font-medium">
-                        {/* 使用文字格式化函數，並傳入適合白底的強調色 (Slate-900) */}
                         {renderFormattedText(getAiAnalysisForCategory(item.category), 'text-slate-900')}
                         </p>
                     </div>
@@ -650,10 +621,9 @@ const App: React.FC = () => {
                         <span className="text-3xl">💡</span>
                         <h3 className="text-3xl font-black text-amber-400 tracking-tight">教練總結</h3>
                     </div>
-                    <div className="space-y-10">
-                        {/* 修正：使用 renderFormattedText，讓深色背景上的強調字顯示為亮金色 (Amber-400) */}
+                    <div className="space-y-6 md:space-y-8">
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-lg md:text-xl leading-relaxed font-medium text-white text-justify">
+                        <p key={idx} className="text-xl md:text-2xl leading-loose font-bold text-white text-justify tracking-wide">
                             {renderFormattedText(line, 'text-amber-400')}
                         </p>
                         ))}
@@ -667,12 +637,10 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         {/* 修正：標題放大 (text-4xl md:text-5xl) */}
                          <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
-                    <div className="space-y-6">
-                        {/* 修正：靜態描述文字也支援格式化，讓重點更突出 */}
+                    <div className="space-y-8">
                         {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
                             <p key={index} className="text-xl md:text-2xl leading-relaxed font-medium text-white text-justify">
                                 {renderFormattedText(paragraph, 'text-amber-400')}
@@ -685,8 +653,7 @@ const App: React.FC = () => {
                        <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></span>
                        
                        <div className="flex flex-col items-center justify-center leading-none py-1">
-                           <span className="text-xl md:text-3xl font-black tracking-tight">查看 5 週變身計畫</span>
-                           <span className="text-sm md:text-lg font-bold opacity-90 mt-1 tracking-wide">(每月僅收 3 人)</span>
+                           <span className="text-xl md:text-3xl font-black tracking-tight">{EXPERT_CONFIG.ctaButtonText}</span>
                        </div>
 
                        <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
