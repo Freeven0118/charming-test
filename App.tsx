@@ -637,7 +637,7 @@ const App: React.FC = () => {
                              </span>
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
-                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
+                         <h4 className="text-center text-white font-bold text-3xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-8">
@@ -654,6 +654,8 @@ const App: React.FC = () => {
                        
                        <div className="flex flex-col items-center justify-center leading-none py-1">
                            <span className="text-xl md:text-3xl font-black tracking-tight">{EXPERT_CONFIG.ctaButtonText}</span>
+                           {/* @ts-ignore */}
+                           <span className="text-sm md:text-lg font-bold mt-1 opacity-90">{EXPERT_CONFIG.ctaButtonSubText}</span>
                        </div>
 
                        <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
