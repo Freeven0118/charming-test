@@ -437,15 +437,16 @@ const App: React.FC = () => {
 
           <div key={isIntroMode ? `intro-${currentIdx}` : `q-${currentIdx}`} className="animate-slide-up">
             {isIntroMode ? (
-              <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center">
-                <div className="mb-6 text-7xl animate-bounce">
+              // 修改：縮小手機版的 padding (p-6), Icon (text-5xl), Title (text-3xl), Desc (text-lg)
+              <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center">
+                <div className="mb-4 md:mb-6 text-5xl md:text-7xl animate-bounce">
                   {currentIdx === 0 ? '👔' : currentIdx === 4 ? '📸' : currentIdx === 8 ? '💬' : '🔥'}
                 </div>
-                <h2 className="text-5xl font-black text-slate-800 mb-4">{QUESTIONS[currentIdx].category}</h2>
-                <p className="text-2xl text-slate-500 leading-relaxed mb-10">{CATEGORY_INFO[QUESTIONS[currentIdx].category].description}</p>
-                <div className="w-full space-y-4">
-                  <button onClick={nextStep} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-6 rounded-2xl text-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95">進入測驗</button>
-                  <button onClick={prevStep} className="w-full py-4 text-lg text-slate-400 font-bold hover:text-slate-600 transition-colors">回到上一題</button>
+                <h2 className="text-3xl md:text-5xl font-black text-slate-800 mb-2 md:mb-4">{QUESTIONS[currentIdx].category}</h2>
+                <p className="text-lg md:text-2xl text-slate-500 leading-relaxed mb-6 md:mb-10">{CATEGORY_INFO[QUESTIONS[currentIdx].category].description}</p>
+                <div className="w-full space-y-3 md:space-y-4">
+                  <button onClick={nextStep} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 md:py-6 rounded-2xl text-xl md:text-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95">進入測驗</button>
+                  <button onClick={prevStep} className="w-full py-2 md:py-4 text-base md:text-lg text-slate-400 font-bold hover:text-slate-600 transition-colors">回到上一題</button>
                 </div>
               </div>
             ) : (
@@ -667,7 +668,7 @@ const App: React.FC = () => {
                              <div className="h-px bg-slate-700 flex-1"></div>
                          </div>
                          {/* 修正：標題放大 (text-4xl md:text-5xl) */}
-                         <h4 className="text-center text-white font-bold text-3xl md:text-3xl tracking-tight mb-8">從「知道」到「做到」</h4>
+                         <h4 className="text-center text-white font-bold text-4xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
                     </div>
 
                     <div className="space-y-6">
