@@ -629,7 +629,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="space-y-6 md:space-y-8">
                         {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-xl md:text-2xl leading-loose font-bold text-white text-justify tracking-wide">
+                        <p key={idx} className="text-xl md:text-2xl leading-relaxed font-bold text-white text-justify tracking-wide">
                             {renderFormattedText(line, 'text-amber-400')}
                         </p>
                         ))}
