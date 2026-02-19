@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS } from './constants';
+import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS, LOVE_GAME_QUESTIONS } from './constants';
 import { Category } from './types';
 import Chart from 'chart.js/auto';
 
@@ -17,16 +17,8 @@ interface AiReport {
   coachGeneralAdvice: string; 
 }
 
-// 小遊戲物件介面
-interface GameItem {
-  id: number;
-  x: number;
-  y: number;
-  emoji: string;
-}
-
 const App: React.FC = () => {
-  // 狀態管理 - 移除 'lead-capture'，改為 isUnlocked 控制
+  // 狀態管理
   const [step, setStep] = useState<'hero' | 'quiz' | 'diagnosing' | 'result'>('hero');
   const [isUnlocked, setIsUnlocked] = useState(false); // 控制結果頁是否解鎖
 
@@ -43,11 +35,18 @@ const App: React.FC = () => {
 
   const [aiAnalysis, setAiAnalysis] = useState<AiReport | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  
+  // 進度條狀態
   const [fakeProgress, setFakeProgress] = useState(0);
 
-  // 小遊戲狀態
-  const [gameScore, setGameScore] = useState(0);
-  const [gameItems, setGameItems] = useState<GameItem[]>([]);
+  // === 曖昧急診室 (Love Emergency) 遊戲狀態 ===
+  const GAME_DURATION = 8; // 每題秒數
+  const [gameQIdx, setGameQIdx] = useState(0);
+  const [gameScore, setGameScore] = useState(3); // 初始3顆心
+  const [gameTimeLeft, setGameTimeLeft] = useState(GAME_DURATION);
+  const [gameFeedback, setGameFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [isGameFinished, setIsGameFinished] = useState(false);
+  const gameTimerRef = useRef<number>(0);
 
   // 錯誤處理與手動 Key
   const [customApiKey, setCustomApiKey] = useState('');
@@ -62,11 +61,10 @@ const App: React.FC = () => {
 
   const [lastError, setLastError] = useState<string>('');
 
-  // 渲染格式化文字 (將原本的 amber-400 改為 #edae26)
+  // 渲染格式化文字
   const renderFormattedText = (text: string, highlightClass: string = 'text-[#edae26]') => {
     if (!text) return null;
     
-    // 優先處理 <b> 標籤 (AI 現在會回傳這個)
     if (text.includes('<b>')) {
         const parts = text.split(/(<b>.*?<\/b>)/g);
         return parts.map((part, index) => {
@@ -78,7 +76,6 @@ const App: React.FC = () => {
         });
     }
 
-    // 相容舊版 ** 標記 (靜態文案)
     return text.split('**').map((part, index) => 
       index % 2 === 1 ? (
         <span key={index} className={`${highlightClass} font-black`}>
@@ -92,7 +89,7 @@ const App: React.FC = () => {
 
   const handleRestart = () => {
     setStep('hero');
-    setIsUnlocked(false); // 重置解鎖狀態
+    setIsUnlocked(false);
     setCurrentIdx(0);
     setIsIntroMode(true);
     setAnswers({});
@@ -102,14 +99,19 @@ const App: React.FC = () => {
     setShowKeyInput(false);
     setUserData({ name: '', email: '' });
     setEmailStatus('idle');
-    setGameScore(0); // 重置遊戲分數
-    setGameItems([]);
+    
+    // 重置遊戲
+    setGameQIdx(0);
+    setGameScore(3);
+    setGameTimeLeft(GAME_DURATION);
+    setGameFeedback(null);
+    setIsGameFinished(false);
+    
     aiFetchingRef.current = false;
     lastFetchTimeRef.current = 0;
     isAnsweringRef.current = false;
   };
 
-  // Step 1: Hero Start Button
   const handleStartQuiz = () => {
     setStep('quiz');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -150,7 +152,6 @@ const App: React.FC = () => {
     }
   }, [step, answers]);
 
-  // 生成 QuickChart URL
   const generateRadarChartUrl = () => {
     if (!localSummary) return '';
     const labels = localSummary.summary.map(s => s.category);
@@ -189,7 +190,6 @@ const App: React.FC = () => {
 
   const processTextForEmail = (text: string, highlightColor: string = '#edae26') => {
     if (!text) return '';
-    // 將 **text** 和 <b>text</b> 轉為 email 安全的樣式
     let processed = text.replace(/\*\*\s?([^*]+?)\s?\*\*/g, `<span style="color:${highlightColor}; font-weight:bold;">$1</span>`);
     processed = processed.replace(/<b>(.*?)<\/b>/g, `<span style="color:${highlightColor}; font-weight:bold;">$1</span>`);
     processed = processed.replace(/\n/g, '<br>');
@@ -203,11 +203,8 @@ const App: React.FC = () => {
     const persona = PERSONAS.find(p => p.id === finalReport.selectedPersonaId) || PERSONAS[5];
     const totalScore100 = Math.round((localSummary.totalScore / 48) * 100);
 
-    // ==========================================
-    // 1. 生成「四大屬性分析」的 HTML (RWD 優化版)
-    // ==========================================
     const dimensionsHtml = localSummary.summary.map(item => {
-        let colorCode = '#ef4444'; // Red
+        let colorCode = '#ef4444'; 
         let bgCode = '#fef2f2';
         let textCode = '#b91c1c';
         
@@ -245,9 +242,6 @@ const App: React.FC = () => {
         `;
     }).join('');
 
-    // ==========================================
-    // 2. 生成「深色教練總結區塊」的 HTML (RWD 優化版)
-    // ==========================================
     const coachAdviceHtml = processTextForEmail(finalReport.coachGeneralAdvice, '#edae26');
     const step1TextHtml = processTextForEmail(EXPERT_CONFIG.step1_text, '#edae26');
     const step2TextHtml = processTextForEmail(EXPERT_CONFIG.step2_text, '#edae26');
@@ -354,7 +348,6 @@ const App: React.FC = () => {
              throw new Error(`Webhook failed with status: ${response.status}`);
         }
         
-        console.log("Webhook fired successfully");
         setEmailStatus('success');
     } catch (e) {
         console.error("Webhook failed - N8N may be offline or unreachable", e);
@@ -526,54 +519,60 @@ const App: React.FC = () => {
     }
   };
 
-  // 進度條與小遊戲邏輯
+  // 1. 進度條獨立邏輯：確保穩定 90 秒跑完 99%
   useEffect(() => {
-    let progressTimer: number;
-    let gameSpawner: number;
-
     if (step === 'diagnosing' && !lastError) {
       setFakeProgress(1);
-      
-      // 1. 進度條邏輯：線性均速，目標 90 秒跑完 99%
-      // 99% / 900次 (90秒/100ms) = 0.11
-      progressTimer = window.setInterval(() => {
+      const timer = setInterval(() => {
         setFakeProgress(prev => {
-          if (prev >= 99) return 99;
-          return prev + 0.11; // 均速推進
+           if (prev >= 99) return 99;
+           return prev + 0.11;
         });
       }, 100);
-
-      // 2. 小遊戲邏輯：每 800ms 產生一個魅力物品
-      gameSpawner = window.setInterval(() => {
-        const emojis = ['💖', '✨', '🔥', '💎'];
-        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-        const newItem: GameItem = {
-          id: Date.now(),
-          x: Math.random() * 80 + 10, // 10% - 90%
-          y: Math.random() * 70 + 10, // 10% - 80%
-          emoji: randomEmoji
-        };
-        
-        setGameItems(prev => [...prev, newItem]);
-
-        // 2.5秒後自動消失，避免畫面太亂
-        setTimeout(() => {
-           setGameItems(prev => prev.filter(i => i.id !== newItem.id));
-        }, 2500);
-
-      }, 800);
+      return () => clearInterval(timer);
     }
-
-    return () => {
-      clearInterval(progressTimer);
-      clearInterval(gameSpawner);
-    };
   }, [step, lastError]);
 
-  // 點擊收集魅力
-  const handleCollectItem = (id: number) => {
-      setGameScore(prev => prev + 10);
-      setGameItems(prev => prev.filter(i => i.id !== id));
+  // 2. Love Emergency Game Logic
+  useEffect(() => {
+     let interval: number;
+     if (step === 'diagnosing' && !isGameFinished && !gameFeedback) {
+         interval = window.setInterval(() => {
+             setGameTimeLeft(prev => {
+                 if (prev <= 0.1) {
+                     handleGameAnswer(false); // Time's up treated as wrong
+                     return 0;
+                 }
+                 return prev - 0.1;
+             });
+         }, 100);
+     }
+     return () => clearInterval(interval);
+  }, [step, isGameFinished, gameFeedback]);
+
+  const handleGameAnswer = (isCorrect: boolean) => {
+      // 避免重複處發
+      if (gameFeedback) return;
+
+      setGameFeedback(isCorrect ? 'correct' : 'wrong');
+      
+      if (isCorrect) {
+          setGameScore(s => s + 1);
+      } else {
+          setGameScore(s => Math.max(0, s - 1));
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      }
+
+      // 1秒後切下一題
+      setTimeout(() => {
+          if (gameQIdx < LOVE_GAME_QUESTIONS.length - 1) {
+              setGameQIdx(prev => prev + 1);
+              setGameTimeLeft(GAME_DURATION);
+              setGameFeedback(null);
+          } else {
+              setIsGameFinished(true);
+          }
+      }, 1000);
   };
 
   useEffect(() => {
@@ -811,7 +810,7 @@ const App: React.FC = () => {
               </div>
           ) : !lastError ? (
             <>
-              {/* Progress Bar */}
+              {/* Progress Bar (System Loading) */}
               <div className="w-full max-w-md space-y-2">
                  <div className="flex justify-between items-end">
                     <span className="text-blue-600 font-bold text-lg animate-pulse">● 診斷引擎分析中...</span>
@@ -822,28 +821,98 @@ const App: React.FC = () => {
                  </div>
               </div>
 
-              {/* Game Area */}
-              <div className="relative w-full max-w-md h-64 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 overflow-hidden select-none cursor-pointer active:scale-[0.99] transition-transform">
-                 <div className="absolute top-4 left-0 w-full text-center z-10 pointer-events-none">
-                    <p className="text-slate-400 font-bold text-sm">等待分析時，來收集一點魅力值吧！</p>
-                    <p className="text-[#0f172a] font-black text-2xl mt-1">✨ 收集: {gameScore}</p>
-                 </div>
+              {/* === Love Emergency Game Area === */}
+              <div className="w-full max-w-md bg-slate-900 rounded-[2rem] border-4 border-slate-800 shadow-2xl overflow-hidden relative text-white">
                  
-                 {/* Spawning Items */}
-                 {gameItems.map(item => (
-                   <span 
-                      key={item.id}
-                      onClick={() => handleCollectItem(item.id)}
-                      className="absolute text-4xl cursor-pointer animate-pop-in hover:scale-125 transition-transform"
-                      style={{ left: `${item.x}%`, top: `${item.y}%` }}
-                   >
-                     {item.emoji}
-                   </span>
-                 ))}
+                 {/* Game Content */}
+                 {!isGameFinished ? (
+                     <div className="p-6 space-y-6 relative">
+                        {/* Header: Score & Timer */}
+                        <div className="flex justify-between items-center">
+                            <div className="flex space-x-1 text-2xl">
+                                {Array.from({length: 3}).map((_, i) => (
+                                    <span key={i} className={i < gameScore ? 'opacity-100' : 'opacity-20 grayscale'}>❤️</span>
+                                ))}
+                            </div>
+                            <div className="w-1/2 h-3 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
+                                <div 
+                                    className={`h-full transition-all duration-100 ease-linear ${gameTimeLeft < 3 ? 'bg-red-500' : 'bg-green-400'}`} 
+                                    style={{ width: `${(gameTimeLeft / GAME_DURATION) * 100}%` }}
+                                ></div>
+                            </div>
+                        </div>
+
+                        {/* Avatar & Scenario */}
+                        <div className="flex flex-col items-center space-y-4">
+                             <div className={`text-7xl transition-transform duration-300 ${gameFeedback === 'correct' ? 'scale-125' : gameFeedback === 'wrong' ? 'animate-shake' : ''}`}>
+                                 {gameFeedback === 'correct' ? '🥰' : gameFeedback === 'wrong' ? '💔' : LOVE_GAME_QUESTIONS[gameQIdx].emoji}
+                             </div>
+                             
+                             <div className="w-full bg-slate-800/80 backdrop-blur-sm border border-slate-600 p-4 rounded-2xl min-h-[100px] flex items-center justify-center text-center shadow-inner">
+                                 <p className="text-lg md:text-xl font-bold leading-relaxed text-slate-100">
+                                     {LOVE_GAME_QUESTIONS[gameQIdx].scenario}
+                                 </p>
+                             </div>
+                        </div>
+
+                        {/* Options */}
+                        <div className="space-y-3">
+                            {LOVE_GAME_QUESTIONS[gameQIdx].options.map((opt, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleGameAnswer(opt.isCorrect)}
+                                    disabled={!!gameFeedback}
+                                    className={`
+                                        w-full p-4 rounded-xl font-bold text-left text-base md:text-lg transition-all duration-200 border-2
+                                        ${gameFeedback 
+                                            ? (opt.isCorrect 
+                                                ? 'bg-green-500 border-green-400 text-white shadow-[0_0_15px_rgba(34,197,94,0.6)]' // Reveal Correct
+                                                : 'bg-slate-700 border-slate-700 text-slate-400 opacity-50') 
+                                            : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-blue-400 hover:text-blue-300'
+                                        }
+                                        ${gameFeedback === 'wrong' && !opt.isCorrect ? 'opacity-30' : ''}
+                                    `}
+                                >
+                                    {idx === 0 ? 'A. ' : 'B. '} {opt.text}
+                                </button>
+                            ))}
+                        </div>
+                     </div>
+                 ) : (
+                     // Game Finished Screen
+                     <div className="p-8 flex flex-col items-center justify-center min-h-[400px] space-y-6 animate-fade-in">
+                         <div className="text-6xl animate-bounce">
+                             {gameScore >= 8 ? '🤴' : gameScore >= 4 ? '😐' : '💀'}
+                         </div>
+                         <div className="text-center space-y-2">
+                             <h3 className="text-3xl font-black text-white">測驗結束</h3>
+                             <p className="text-xl font-bold text-slate-400">
+                                 你的情商分數：<span className="text-[#edae26] text-2xl">{Math.min(100, Math.round((gameScore / 12) * 100))}</span> 分
+                             </p>
+                         </div>
+                         <div className="bg-slate-800 p-4 rounded-xl text-center w-full">
+                             <p className="text-slate-300 font-medium">
+                                 {gameScore >= 10 ? "太強了！你是天生的調情高手！" : 
+                                  gameScore >= 6 ? "還不錯，但有些細節可以更細膩。" : 
+                                  "別灰心，這就是為什麼你需要這份報告！"}
+                             </p>
+                         </div>
+                         <p className="text-xs text-slate-500 animate-pulse">分析報告生成中...</p>
+                     </div>
+                 )}
+
+                 {/* Visual Overlay for Feedback */}
+                 {gameFeedback && (
+                     <div className={`absolute inset-0 z-20 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${gameFeedback ? 'opacity-100' : 'opacity-0'}`}>
+                         <div className={`text-9xl font-black drop-shadow-2xl scale-150 animate-pop-in ${gameFeedback === 'correct' ? 'text-green-400' : 'text-red-500'}`}>
+                             {gameFeedback === 'correct' ? '⭕️' : '❌'}
+                         </div>
+                     </div>
+                 )}
               </div>
               
               <div className="text-slate-400 font-medium italic text-sm">
-                提示：點擊出現的圖示來增加分數
+                * 本遊戲為等待期間的趣味測試，不影響最終 AI 分析結果
               </div>
             </>
           ) : (
