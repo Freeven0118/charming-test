@@ -17,6 +17,14 @@ interface AiReport {
   coachGeneralAdvice: string; 
 }
 
+// 小遊戲物件介面
+interface GameItem {
+  id: number;
+  x: number;
+  y: number;
+  emoji: string;
+}
+
 const App: React.FC = () => {
   // 狀態管理 - 移除 'lead-capture'，改為 isUnlocked 控制
   const [step, setStep] = useState<'hero' | 'quiz' | 'diagnosing' | 'result'>('hero');
@@ -36,6 +44,10 @@ const App: React.FC = () => {
   const [aiAnalysis, setAiAnalysis] = useState<AiReport | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [fakeProgress, setFakeProgress] = useState(0);
+
+  // 小遊戲狀態
+  const [gameScore, setGameScore] = useState(0);
+  const [gameItems, setGameItems] = useState<GameItem[]>([]);
 
   // 錯誤處理與手動 Key
   const [customApiKey, setCustomApiKey] = useState('');
@@ -90,6 +102,8 @@ const App: React.FC = () => {
     setShowKeyInput(false);
     setUserData({ name: '', email: '' });
     setEmailStatus('idle');
+    setGameScore(0); // 重置遊戲分數
+    setGameItems([]);
     aiFetchingRef.current = false;
     lastFetchTimeRef.current = 0;
     isAnsweringRef.current = false;
@@ -192,9 +206,7 @@ const App: React.FC = () => {
     // ==========================================
     // 1. 生成「四大屬性分析」的 HTML (RWD 優化版)
     // ==========================================
-    // 修改重點：加入 class="dimension-card" 讓 CSS 可以覆寫 Padding
     const dimensionsHtml = localSummary.summary.map(item => {
-        // 設定顏色
         let colorCode = '#ef4444'; // Red
         let bgCode = '#fef2f2';
         let textCode = '#b91c1c';
@@ -236,47 +248,31 @@ const App: React.FC = () => {
     // ==========================================
     // 2. 生成「深色教練總結區塊」的 HTML (RWD 優化版)
     // ==========================================
-    // 修改重點：加入 class="coach-section" 和 "coach-content"
-    
     const coachAdviceHtml = processTextForEmail(finalReport.coachGeneralAdvice, '#edae26');
     const step1TextHtml = processTextForEmail(EXPERT_CONFIG.step1_text, '#edae26');
-    // 修改：step2 的重點色設為 #edae26
     const step2TextHtml = processTextForEmail(EXPERT_CONFIG.step2_text, '#edae26');
 
     const coachSectionHtml = `
     <div class="coach-section" style="background-color: #0f172a; border-radius: 20px; overflow: hidden; margin-top: 30px;">
-        <!-- 圖片區塊 (Width 100%) -->
         <img src="${EXPERT_CONFIG.imageUrl}" alt="Coach" style="width: 100%; height: auto; display: block;" />
-
-        <!-- 內容容器 -->
         <div class="coach-content" style="padding: 30px 20px;">
-            
-            <!-- 教練總結標題 -->
             <div style="margin-bottom: 25px;">
                 <h3 style="color: #edae26; font-size: 22px; font-weight: 900; margin: 0 0 5px 0;">教練總結</h3>
                 <p style="color: #cbd5e1; font-size: 15px; font-weight: 500; margin: 0;">針對你的現況，最重要的下一步</p>
             </div>
-
-            <!-- AI 建議區塊 (深灰底) -->
             <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
                 <div style="color: #e2e8f0; font-size: 16px; line-height: 1.8; text-align: justify;">
                     ${coachAdviceHtml}
                 </div>
             </div>
-
-            <!-- 分隔線 (加入 white-space: nowrap) -->
             <div style="text-align: center; margin-bottom: 30px;">
                 <span style="color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(237, 174, 38, 0.05); display: inline-block; white-space: nowrap;">Your Next Step</span>
             </div>
-
-            <!-- 3天計畫內容 -->
             <div style="margin-bottom: 35px; text-align: center;">
                 <h4 style="color: #ffffff; font-size: 20px; font-weight: 900; margin: 0 0 15px 0;">${EXPERT_CONFIG.step1_title}</h4>
                 <div style="color: #cbd5e1; font-size: 16px; line-height: 1.7; margin-bottom: 25px; text-align: justify;">
                     ${step1TextHtml}
                 </div>
-
-                <!-- 計畫卡片 -->
                 <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
                     <h4 style="color: #edae26; font-size: 18px; font-weight: 900; margin: 0 0 15px 0;">${EXPERT_CONFIG.step2_title}</h4>
                     <div style="color: #e2e8f0; font-size: 16px; line-height: 1.8; white-space: pre-line; font-weight: 500;">
@@ -287,40 +283,32 @@ const App: React.FC = () => {
                     </p>
                 </div>
             </div>
-
-            <!-- CTA 按鈕 (改為 LINE 加好友圖片) -->
             <div style="text-align: center;">
                 <a href="${SOCIAL_URLS.line}" target="_blank" style="display: block; width: 100%; max-width: 250px; margin: 0 auto; text-decoration: none;">
                     <img src="${ASSETS.line_button}" style="width: 100%; height: auto; display: block;" alt="${EXPERT_CONFIG.ctaButtonText}" />
                 </a>
                 <p style="color: #64748b; font-size: 12px; font-weight: bold; margin: 15px 0 0 0;">${EXPERT_CONFIG.ctaButtonSubText}</p>
             </div>
-
-            <!-- Social Links (Email Version) -->
             <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
                 <table border="0" cellspacing="0" cellpadding="0" align="center">
                   <tr>
                     <td style="padding: 0 15px;">
                         <a href="${SOCIAL_URLS.instagram}" target="_blank" style="text-decoration: none;">
-                            <!-- 🔧在此處修改 width 數值即可改變圖示大小 -->
                             <img src="${ASSETS.icon_ig}" width="38" style="display: block; opacity: 0.9;" alt="Instagram" />
                         </a>
                     </td>
                     <td style="padding: 0 15px;">
                         <a href="${SOCIAL_URLS.threads}" target="_blank" style="text-decoration: none;">
-                            <!-- 🔧在此處修改 width 數值即可改變圖示大小 -->
                             <img src="${ASSETS.icon_threads}" width="38" style="display: block; opacity: 0.9;" alt="Threads" />
                         </a>
                     </td>
                   </tr>
                 </table>
             </div>
-
         </div>
     </div>
     `;
 
-    // 準備 Payload
     const tagsHtml = persona.tags.map(t => 
         `<span style="display:inline-block; background-color:#f1f5f9; color:#475569; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:bold; margin-right:5px; margin-bottom:5px; border:1px solid #cbd5e1;">#${t}</span>`
     ).join('');
@@ -329,7 +317,7 @@ const App: React.FC = () => {
     const personaPngUrl = getPersonaPngUrl(persona.imageUrl);
 
     const payload = {
-        quiz_source: 'charming-test', // 新增來源標記
+        quiz_source: 'charming-test', 
         submittedAt: new Date().toISOString(),
         name: userData.name,
         email: userData.email,
@@ -349,7 +337,6 @@ const App: React.FC = () => {
             explanation: processTextForEmail(finalReport.personaExplanation, '#edae26'),
         },
 
-        // 新增：完整的 HTML 區塊，直接給 n8n 渲染
         html_components: {
             dimensions_grid: dimensionsHtml,
             coach_section: coachSectionHtml
@@ -371,12 +358,10 @@ const App: React.FC = () => {
         setEmailStatus('success');
     } catch (e) {
         console.error("Webhook failed - N8N may be offline or unreachable", e);
-        // 不設定為 error，以免使用者以為沒解鎖成功。
         setEmailStatus('success'); 
     }
   };
 
-  // 解鎖表單送出 (原地解鎖邏輯)
   const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userData.name || !userData.email) return;
@@ -388,17 +373,14 @@ const App: React.FC = () => {
         formData.append('first_name', userData.name);
         formData.append('email', userData.email);
 
-        // Systeme.io (No CORS)
         await fetch('https://systeme.io/embedded/37702026/subscription', {
             method: 'POST',
             body: formData,
             mode: 'no-cors'
         });
         
-        // 延遲一下讓 UX 感覺有在處理
         await new Promise(resolve => setTimeout(resolve, 600));
 
-        // 觸發 N8N Webhook (寄信)
         if (aiAnalysis) {
              await sendToWebhook(aiAnalysis);
         }
@@ -407,9 +389,8 @@ const App: React.FC = () => {
         console.error("Systeme.io submission failed", err);
     } finally {
         setIsFormSubmitting(false);
-        setIsUnlocked(true); // 關鍵：無論如何都解鎖畫面
+        setIsUnlocked(true); 
 
-        // 自動捲動到四大屬性分析區塊 (id="detailed-report")
         setTimeout(() => {
             const detailedReport = document.getElementById('detailed-report');
             if (detailedReport) {
@@ -454,7 +435,6 @@ const App: React.FC = () => {
     if (forceFallback) {
         setTimeout(() => {
             setAiAnalysis(fallbackAnalysis);
-            // sendToWebhook Removed here - will be called in Unlock Step
             setIsAiLoading(false);
             aiFetchingRef.current = false;
         }, 800);
@@ -525,7 +505,6 @@ const App: React.FC = () => {
 
       const parsedData = JSON.parse(text) as AiReport;
       setAiAnalysis(parsedData);
-      // sendToWebhook Removed here - will be called in Unlock Step
 
     } catch (e: any) {
       console.error("AI Analysis Error:", e);
@@ -547,43 +526,60 @@ const App: React.FC = () => {
     }
   };
 
+  // 進度條與小遊戲邏輯
   useEffect(() => {
-    let timer: number;
+    let progressTimer: number;
+    let gameSpawner: number;
+
     if (step === 'diagnosing' && !lastError) {
       setFakeProgress(1);
-      timer = window.setInterval(() => {
+      
+      // 1. 進度條邏輯：線性均速，目標 90 秒跑完 99%
+      // 99% / 900次 (90秒/100ms) = 0.11
+      progressTimer = window.setInterval(() => {
         setFakeProgress(prev => {
-          if (prev >= 95) return prev; // Cap at 95% until real response comes
-
-          // "Gentle & Steady" Strategy (平穩推進策略)
-          // 避免太快衝到 99% 然後卡住
-          // 假設 API 平均響應時間 8-12 秒，我們設計約 15-20 秒跑到 90%
-          
-          let increment = 0;
-          
-          if (prev < 30) {
-              increment = 0.8; // 前段：約 3.5 秒
-          } else if (prev < 70) {
-              increment = 0.4; // 中段：約 10 秒
-          } else {
-              increment = 0.1; // 後段：龜速爬升，避免撞牆感
-          }
-
-          // 加入一點隨機性，模擬「計算中」的跳動感
-          if (Math.random() > 0.5) increment += 0.1;
-
-          return prev + increment; 
+          if (prev >= 99) return 99;
+          return prev + 0.11; // 均速推進
         });
       }, 100);
+
+      // 2. 小遊戲邏輯：每 800ms 產生一個魅力物品
+      gameSpawner = window.setInterval(() => {
+        const emojis = ['💖', '✨', '🔥', '💎'];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const newItem: GameItem = {
+          id: Date.now(),
+          x: Math.random() * 80 + 10, // 10% - 90%
+          y: Math.random() * 70 + 10, // 10% - 80%
+          emoji: randomEmoji
+        };
+        
+        setGameItems(prev => [...prev, newItem]);
+
+        // 2.5秒後自動消失，避免畫面太亂
+        setTimeout(() => {
+           setGameItems(prev => prev.filter(i => i.id !== newItem.id));
+        }, 2500);
+
+      }, 800);
     }
-    return () => clearInterval(timer);
+
+    return () => {
+      clearInterval(progressTimer);
+      clearInterval(gameSpawner);
+    };
   }, [step, lastError]);
+
+  // 點擊收集魅力
+  const handleCollectItem = (id: number) => {
+      setGameScore(prev => prev + 10);
+      setGameItems(prev => prev.filter(i => i.id !== id));
+  };
 
   useEffect(() => {
     if (step === 'diagnosing' && aiAnalysis) {
       setFakeProgress(100);
       const timer = setTimeout(() => {
-        // AI 分析完成，進度條跑完 -> 直接進入結果頁 (半鎖定狀態)
         setStep('result');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 800);
@@ -806,7 +802,7 @@ const App: React.FC = () => {
       )}
 
       {step === 'diagnosing' && (
-        <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[60vh] space-y-12 animate-fade-in text-center px-6 md:px-0">
+        <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[60vh] space-y-6 animate-fade-in text-center px-6 md:px-0">
           {!localSummary ? (
               <div className="text-center space-y-4">
                   <div className="text-4xl">⚠️</div>
@@ -815,20 +811,39 @@ const App: React.FC = () => {
               </div>
           ) : !lastError ? (
             <>
-              <div className="relative">
-                <div className="w-32 h-32 border-8 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-[#0f172a]">{Math.floor(fakeProgress)}%</div>
+              {/* Progress Bar */}
+              <div className="w-full max-w-md space-y-2">
+                 <div className="flex justify-between items-end">
+                    <span className="text-blue-600 font-bold text-lg animate-pulse">● 診斷引擎分析中...</span>
+                    <span className="text-3xl font-black text-[#0f172a]">{Math.floor(fakeProgress)}%</span>
+                 </div>
+                 <div className="w-full bg-slate-200 h-4 rounded-full overflow-hidden shadow-inner">
+                    <div className="h-full bg-blue-600 transition-all duration-200 ease-linear" style={{ width: `${fakeProgress}%` }}></div>
+                 </div>
               </div>
-              <div className="space-y-4">
-                <h2 className="text-4xl font-black text-[#0f172a] tracking-tight">診斷引擎正在啟動</h2>
-                <div className="flex flex-col space-y-2 text-xl text-slate-500 font-bold">
-                  <span className={`transition-all duration-500 ${fakeProgress > 15 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 正在分析你的作答細節...</span>
-                  <span className={`transition-all duration-500 ${fakeProgress > 45 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 比對 社交成功案例...</span>
-                  <span className={`transition-all duration-500 ${fakeProgress > 80 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 正在生成專屬建議...</span>
-                </div>
+
+              {/* Game Area */}
+              <div className="relative w-full max-w-md h-64 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-300 overflow-hidden select-none cursor-pointer active:scale-[0.99] transition-transform">
+                 <div className="absolute top-4 left-0 w-full text-center z-10 pointer-events-none">
+                    <p className="text-slate-400 font-bold text-sm">等待分析時，來收集一點魅力值吧！</p>
+                    <p className="text-[#0f172a] font-black text-2xl mt-1">✨ 收集: {gameScore}</p>
+                 </div>
+                 
+                 {/* Spawning Items */}
+                 {gameItems.map(item => (
+                   <span 
+                      key={item.id}
+                      onClick={() => handleCollectItem(item.id)}
+                      className="absolute text-4xl cursor-pointer animate-pop-in hover:scale-125 transition-transform"
+                      style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                   >
+                     {item.emoji}
+                   </span>
+                 ))}
               </div>
-              <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden shadow-inner">
-                <div className="h-full bg-blue-600 transition-all duration-300 ease-out" style={{ width: `${fakeProgress}%` }}></div>
+              
+              <div className="text-slate-400 font-medium italic text-sm">
+                提示：點擊出現的圖示來增加分數
               </div>
             </>
           ) : (
@@ -852,7 +867,6 @@ const App: React.FC = () => {
                 <button onClick={() => runDiagnosis(true)} className="w-full py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors">跳過 AI，直接查看基礎報告</button>
             </div>
           )}
-          <p className="text-slate-400 font-medium italic">「魅力不是天生，而是可以學習的技能」</p>
         </div>
       )}
 
