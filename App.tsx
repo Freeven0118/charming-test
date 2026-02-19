@@ -240,7 +240,8 @@ const App: React.FC = () => {
     
     const coachAdviceHtml = processTextForEmail(finalReport.coachGeneralAdvice, '#edae26');
     const step1TextHtml = processTextForEmail(EXPERT_CONFIG.step1_text, '#edae26');
-    const step2TextHtml = processTextForEmail(EXPERT_CONFIG.step2_text, '#ffffff');
+    // 修改：step2 的重點色設為 #edae26
+    const step2TextHtml = processTextForEmail(EXPERT_CONFIG.step2_text, '#edae26');
 
     const coachSectionHtml = `
     <div class="coach-section" style="background-color: #0f172a; border-radius: 20px; overflow: hidden; margin-top: 30px;">
@@ -263,9 +264,9 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            <!-- 分隔線 -->
+            <!-- 分隔線 (加入 white-space: nowrap) -->
             <div style="text-align: center; margin-bottom: 30px;">
-                <span style="color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(237, 174, 38, 0.05); display: inline-block;">Your Next Step</span>
+                <span style="color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(237, 174, 38, 0.05); display: inline-block; white-space: nowrap;">Your Next Step</span>
             </div>
 
             <!-- 3天計畫內容 -->
@@ -407,6 +408,14 @@ const App: React.FC = () => {
     } finally {
         setIsFormSubmitting(false);
         setIsUnlocked(true); // 關鍵：無論如何都解鎖畫面
+
+        // 自動捲動到四大屬性分析區塊 (id="detailed-report")
+        setTimeout(() => {
+            const detailedReport = document.getElementById('detailed-report');
+            if (detailedReport) {
+                detailedReport.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
     }
   };
 
@@ -967,7 +976,7 @@ const App: React.FC = () => {
                                  <div className={`py-8 transition-all duration-700 ${!isUnlocked ? 'filter blur-md select-none opacity-40' : ''}`}>
                                      <div className="flex items-center justify-center space-x-4">
                                          <div className="h-[1px] bg-slate-700 w-1/4"></div>
-                                         <span className="text-[#edae26] text-xs font-black tracking-[0.2em] uppercase border border-[#edae26]/30 px-4 py-2 rounded-full bg-[#edae26]/5">Your Next Step</span>
+                                         <span className="text-[#edae26] text-xs font-black tracking-[0.2em] uppercase border border-[#edae26]/30 px-4 py-2 rounded-full bg-[#edae26]/5 whitespace-nowrap">Your Next Step</span>
                                          <div className="h-[1px] bg-slate-700 w-1/4"></div>
                                      </div>
                                  </div>
@@ -986,7 +995,7 @@ const App: React.FC = () => {
                                      <div className="bg-[#1e293b] p-5 md:p-8 rounded-[2rem] border border-slate-700 text-center space-y-4">
                                          <h4 className="text-[#edae26] text-2xl font-black mb-4">{EXPERT_CONFIG.step2_title}</h4>
                                          <div className="text-slate-200 text-lg leading-loose whitespace-pre-line font-medium">
-                                             {renderFormattedText(EXPERT_CONFIG.step2_text, 'text-white')}
+                                             {renderFormattedText(EXPERT_CONFIG.step2_text, 'text-[#edae26]')}
                                          </div>
                                          <p className="text-slate-400 text-sm mt-4 italic border-t border-slate-700 pt-4">{EXPERT_CONFIG.closing_text}</p>
                                      </div>
