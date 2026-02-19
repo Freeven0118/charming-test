@@ -553,20 +553,25 @@ const App: React.FC = () => {
       setFakeProgress(1);
       timer = window.setInterval(() => {
         setFakeProgress(prev => {
-          // 修改邏輯：設定不同階段的速度，避免太快衝到 98% 然後卡住
-          if (prev >= 95) return prev; // 停在 95% 等待 AI 回應
+          if (prev >= 95) return prev; // Cap at 95% until real response comes
 
-          let increment = 0;
-          if (prev < 30) {
-            increment = 1.5;  // 0-30%: 快速啟動 (約2秒)
-          } else if (prev < 60) {
-            increment = 0.4;  // 30-60%: 中速分析 (約7.5秒)
-          } else if (prev < 85) {
-            increment = 0.15; // 60-85%: 慢速比對 (約16秒)
-          } else {
-            increment = 0.05; // 85-95%: 龜速生成，預留緩衝 (約20秒)
-          }
+          // "Gentle & Steady" Strategy (平穩推進策略)
+          // 避免太快衝到 99% 然後卡住
+          // 假設 API 平均響應時間 8-12 秒，我們設計約 15-20 秒跑到 90%
           
+          let increment = 0;
+          
+          if (prev < 30) {
+              increment = 0.8; // 前段：約 3.5 秒
+          } else if (prev < 70) {
+              increment = 0.4; // 中段：約 10 秒
+          } else {
+              increment = 0.1; // 後段：龜速爬升，避免撞牆感
+          }
+
+          // 加入一點隨機性，模擬「計算中」的跳動感
+          if (Math.random() > 0.5) increment += 0.1;
+
           return prev + increment; 
         });
       }, 100);
