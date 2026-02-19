@@ -115,7 +115,7 @@ export const PERSONAS = [
     id: 'statue',
     title: '精緻的沈默者',
     subtitle: '外型滿分，只差一點主動的勇氣',
-    description: '你的外在條件其實很不錯，照片看起來也很有質感。但在真實互動時，你可能會因為怕說錯話、或太在意形象，反而變得被動。你現在只需要跨出那一步，學會「主動一點」，就能打破僵局。',
+    description: '你的外在條件其實很不錯，照片看起來也很有質感。但在真實互動時，你可能會因為怕說錯話、或太在意形象，反而變得被動。你現在需要的不是更多理論，而是跨出那一步，學會「主動一點」，就能打破僵局。',
     tags: ['外型優勢', '社群滿分', '行動遲疑', '偶像包袱'],
     imageUrl: 'https://d1yei2z3i6k35z.cloudfront.net/2452254/694c9bf097ed8_2.%E7%B2%BE%E7%B7%BB%E7%9A%84%E6%B2%88%E9%BB%98%E8%80%85.svg'
   },
@@ -187,3 +187,119 @@ export const CATEGORY_INFO: Record<Category, { description: string; suggestions:
     }
   }
 };
+
+// 5. 曖昧急診室 遊戲題庫
+export const LOVE_GAME_QUESTIONS = [
+    // Phase 1: 破冰
+    {
+        id: 1,
+        scenario: "交友軟體上，她個人檔案照片是一張在喝咖啡的氣質照。你要怎麼開場？",
+        emoji: "☕️",
+        options: [
+            { text: "嗨，妳好，想認識妳。", isCorrect: false },
+            { text: "這家拿鐵看起來超讚，妳也是咖啡控嗎？", isCorrect: true }
+        ]
+    },
+    {
+        id: 2,
+        scenario: "她回覆你的訊息：「哈哈」 (句點了)。你該怎麼接？",
+        emoji: "😅",
+        options: [
+            { text: "妳在幹嘛？", isCorrect: false },
+            { text: "直接開啟一個新話題（例如：這週末要去哪玩？）", isCorrect: true }
+        ]
+    },
+    {
+        id: 3,
+        scenario: "她突然問：「你是不是對每個女生都這麼說？」",
+        emoji: "😏",
+        options: [
+            { text: "沒有啦！我只對妳這樣說！", isCorrect: false },
+            { text: "被妳發現了，妳是今天的第三個。", isCorrect: true }
+        ]
+    },
+    // Phase 2: 邀約
+    {
+        id: 4,
+        scenario: "聊得不錯想約她，該怎麼說？",
+        emoji: "📅",
+        options: [
+            { text: "妳這週末有空嗎？要不要出來？", isCorrect: false },
+            { text: "我知道有一家很棒的居酒屋，週五晚上帶妳去喝一杯？", isCorrect: true }
+        ]
+    },
+    {
+        id: 5,
+        scenario: "她說：「週五我不行耶，最近比較忙。」",
+        emoji: "🙅",
+        options: [
+            { text: "好吧...那妳什麼時候有空？", isCorrect: false },
+            { text: "沒問題，那先忙妳的，改天再約。", isCorrect: true }
+        ]
+    },
+    {
+        id: 6,
+        scenario: "約會當天，她傳訊：「抱歉我會遲到 15 分鐘！」",
+        emoji: "⏰",
+        options: [
+            { text: "沒關係，慢慢來，我等妳～", isCorrect: false },
+            { text: "OK，那我先進去點杯飲料，遲到的要罰一杯喔。", isCorrect: true }
+        ]
+    },
+    // Phase 3: 曖昧
+    {
+        id: 7,
+        scenario: "吃晚餐時，她抱怨工作：「我也覺得老闆很機車...」",
+        emoji: "😤",
+        options: [
+            { text: "其實妳應該要換個角度想，老闆也有難處...", isCorrect: false },
+            { text: "真的！聽起來超不講理，妳當時一定氣炸了吧？", isCorrect: true }
+        ]
+    },
+    {
+        id: 8,
+        scenario: "結帳時，帳單來了。",
+        emoji: "🧾",
+        options: [
+            { text: "拿著帳單看著她，等她提議 AA 制。", isCorrect: false },
+            { text: "直接拿出卡結帳：「這頓我請，下次換妳請我喝飲料。」", isCorrect: true }
+        ]
+    },
+    {
+        id: 9,
+        scenario: "散步時氣氛不錯，你想稱讚她。",
+        emoji: "✨",
+        options: [
+            { text: "妳今天好漂亮，這件衣服很貴吧？", isCorrect: false },
+            { text: "跟妳聊天很放鬆，我很喜歡妳看事情的觀點。", isCorrect: true }
+        ]
+    },
+    // Phase 4: 危機與收尾
+    {
+        id: 10,
+        scenario: "她突然問：「你前女友是怎樣的人？」(陷阱題)",
+        emoji: "💣",
+        options: [
+            { text: "開始抱怨前女友有多瘋、多糟糕。", isCorrect: false },
+            { text: "我們個性不合，但她是個好人。不過...妳怎麼突然對我的過去感興趣了？", isCorrect: true }
+        ]
+    },
+    {
+        id: 11,
+        scenario: "約會結束送她回家，到門口時...",
+        emoji: "🚪",
+        options: [
+            { text: "直接問：「我可以親妳嗎？」", isCorrect: false },
+            { text: "深情看著她三秒，幫她撥一下頭髮，看她反應再靠近。", isCorrect: true }
+        ]
+    },
+    {
+        id: 12,
+        scenario: "回家後，該傳什麼訊息？",
+        emoji: "📱",
+        options: [
+            { text: "今天我很開心，妳覺得我怎麼樣？有機會再約嗎？", isCorrect: false },
+            { text: "我剛到家~ 今天去的那家店氣氛不錯，下次再去其他好地方吧！ 晚安，早點休息~", isCorrect: true }
+        ]
+    }
+];
