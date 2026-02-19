@@ -328,6 +328,7 @@ const App: React.FC = () => {
     const personaPngUrl = getPersonaPngUrl(persona.imageUrl);
 
     const payload = {
+        quiz_source: 'charming-test', // 新增來源標記
         submittedAt: new Date().toISOString(),
         name: userData.name,
         email: userData.email,
