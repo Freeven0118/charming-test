@@ -553,8 +553,21 @@ const App: React.FC = () => {
       setFakeProgress(1);
       timer = window.setInterval(() => {
         setFakeProgress(prev => {
-          if (prev >= 98) return prev;
-          return prev + 0.8; 
+          // 修改邏輯：設定不同階段的速度，避免太快衝到 98% 然後卡住
+          if (prev >= 95) return prev; // 停在 95% 等待 AI 回應
+
+          let increment = 0;
+          if (prev < 30) {
+            increment = 1.5;  // 0-30%: 快速啟動 (約2秒)
+          } else if (prev < 60) {
+            increment = 0.4;  // 30-60%: 中速分析 (約7.5秒)
+          } else if (prev < 85) {
+            increment = 0.15; // 60-85%: 慢速比對 (約16秒)
+          } else {
+            increment = 0.05; // 85-95%: 龜速生成，預留緩衝 (約20秒)
+          }
+          
+          return prev + increment; 
         });
       }, 100);
     }
