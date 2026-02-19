@@ -6,20 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- Open Graph / Facebook / LINE 設定 -->
-    <!-- 注意：這些標籤必須放在 head 的最上方，確保社群爬蟲能第一時間讀取 -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://charming-test.vercel.app/">
     <meta property="og:title" content="脫單力檢核分析 | 專為 25-35 歲男性設計">
     <meta property="og:description" content="快速找出你的脫單阻礙。針對外型、社群、行動、心態四個面向的深度分析，領取你的專屬教練建議。">
-    <!-- 修正：更新為用戶指定的 JPG 圖片，解決 LINE 預覽問題 -->
-    <meta property="og:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=1200&auto=format&fit=crop">
 
     <!-- Twitter 設定 -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://charming-test.vercel.app/">
     <meta property="twitter:title" content="脫單力檢核分析 | 專為 25-35 歲男性設計">
     <meta property="twitter:description" content="快速找出你的脫單阻礙。針對外型、社群、行動、心態四個面向的深度分析。">
-    <meta property="twitter:image" content="https://d1yei2z3i6k35z.cloudfront.net/2452254/694fa4aa1af69_694caa69f0eb6_main.jpg">
+    <meta property="twitter:image" content="https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=1200&auto=format&fit=crop">
 
     <title>脫單力檢核分析</title>
     
@@ -32,9 +30,9 @@
     
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            font-family: 'Helvetica Neue', Helvetica, Arial, 'Noto Sans TC', sans-serif;
+            background-color: #f1f5f9; /* 修正為 Email 同款淺灰背景 */
+            color: #0f172a; /* 深藍黑文字 */
         }
         
         /* 基礎淡入 */
@@ -75,17 +73,6 @@
             opacity: 0;
             animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
-
-        /* 流光效果 */
-        @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        .animate-shimmer {
-            background: linear-gradient(90deg, #0f172a 0%, #334155 25%, #475569 50%, #334155 75%, #0f172a 100%);
-            background-size: 200% 100%;
-            animation: shimmer 3s infinite linear;
-        }
     </style>
 <script type="importmap">
 {
@@ -100,6 +87,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body>
     <div id="root"></div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG } from './constants';
+import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS } from './constants';
 import { Category } from './types';
 import Chart from 'chart.js/auto';
 
@@ -18,32 +18,55 @@ interface AiReport {
 }
 
 const App: React.FC = () => {
-  // 狀態管理
+  // 狀態管理 - 移除 'lead-capture'，改為 isUnlocked 控制
   const [step, setStep] = useState<'hero' | 'quiz' | 'diagnosing' | 'result'>('hero');
+  const [isUnlocked, setIsUnlocked] = useState(false); // 控制結果頁是否解鎖
+
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isIntroMode, setIsIntroMode] = useState(true);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   
+  // 使用者資料
+  const [userData, setUserData] = useState({ name: '', email: '' });
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  
+  // Email/Webhook 寄送狀態
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
+
   const [aiAnalysis, setAiAnalysis] = useState<AiReport | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [fakeProgress, setFakeProgress] = useState(0);
 
-  // 用於錯誤處理與手動 Key
+  // 錯誤處理與手動 Key
   const [customApiKey, setCustomApiKey] = useState('');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
   // Refs
-  const aiFetchingRef = useRef(false); // 防止重複呼叫 AI
-  const lastFetchTimeRef = useRef<number>(0); // 防止 React StrictMode 導致的瞬間雙重請求
+  const aiFetchingRef = useRef(false); 
+  const lastFetchTimeRef = useRef<number>(0);
   const radarChartRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<any>(null);
+  const isAnsweringRef = useRef(false); // 防止重複點擊
 
-  // 用於邏輯的狀態 (不顯示於 UI)
   const [lastError, setLastError] = useState<string>('');
 
-  // 新增：文字格式化工具函數 (解析 **重點** 語法)
-  const renderFormattedText = (text: string, highlightClass: string = 'text-amber-400') => {
+  // 渲染格式化文字 (將原本的 amber-400 改為 #edae26)
+  const renderFormattedText = (text: string, highlightClass: string = 'text-[#edae26]') => {
     if (!text) return null;
+    
+    // 優先處理 <b> 標籤 (AI 現在會回傳這個)
+    if (text.includes('<b>')) {
+        const parts = text.split(/(<b>.*?<\/b>)/g);
+        return parts.map((part, index) => {
+            if (part.startsWith('<b>') && part.endsWith('</b>')) {
+                const content = part.replace(/<\/?b>/g, '');
+                return <span key={index} className={`${highlightClass} font-black`}>{content}</span>;
+            }
+            return part;
+        });
+    }
+
+    // 相容舊版 ** 標記 (靜態文案)
     return text.split('**').map((part, index) => 
       index % 2 === 1 ? (
         <span key={index} className={`${highlightClass} font-black`}>
@@ -55,8 +78,9 @@ const App: React.FC = () => {
     );
   };
 
-  const handleStart = () => {
-    setStep('quiz');
+  const handleRestart = () => {
+    setStep('hero');
+    setIsUnlocked(false); // 重置解鎖狀態
     setCurrentIdx(0);
     setIsIntroMode(true);
     setAnswers({});
@@ -64,8 +88,453 @@ const App: React.FC = () => {
     setFakeProgress(0);
     setLastError('');
     setShowKeyInput(false);
+    setUserData({ name: '', email: '' });
+    setEmailStatus('idle');
     aiFetchingRef.current = false;
     lastFetchTimeRef.current = 0;
+    isAnsweringRef.current = false;
+  };
+
+  // Step 1: Hero Start Button
+  const handleStartQuiz = () => {
+    setStep('quiz');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const localSummary = useMemo(() => {
+    if (step === 'hero' || step === 'quiz') return null;
+    
+    try {
+        const categories: Category[] = ['形象外表', '社群形象', '行動與互動', '心態與習慣'];
+        const summary = categories.map(cat => {
+          const catQuestions = QUESTIONS.filter(q => q.category === cat);
+          const score = catQuestions.reduce((acc, q) => {
+              const val = answers[q.id];
+              return acc + (val === -1 ? 0 : (val || 0));
+          }, 0);
+          
+          let level: '紅燈' | '黃燈' | '綠燈' = '紅燈';
+          if (score >= 9) { level = '綠燈'; }
+          else if (score >= 5) { level = '黃燈'; }
+          
+          const info = CATEGORY_INFO[cat] || { description: '', suggestions: { '紅燈': '', '黃燈': '', '綠燈': '' } };
+
+          return { 
+            category: cat, 
+            score, 
+            level, 
+            description: info.description, 
+            suggestion: info.suggestions[level] 
+          };
+        });
+
+        const totalScore = summary.reduce((acc, curr) => acc + curr.score, 0);
+        return { summary, totalScore };
+    } catch (e) {
+        console.error("Error calculating summary", e);
+        return null;
+    }
+  }, [step, answers]);
+
+  // 生成 QuickChart URL
+  const generateRadarChartUrl = () => {
+    if (!localSummary) return '';
+    const labels = localSummary.summary.map(s => s.category);
+    const data = localSummary.summary.map(s => s.score);
+    
+    const chartConfig = {
+      type: 'radar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '魅力值',
+          data: data,
+          backgroundColor: 'rgba(37, 99, 235, 0.2)', 
+          borderColor: 'rgba(37, 99, 235, 1)',
+          pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        scale: {
+          ticks: { beginAtZero: true, max: 12, stepSize: 3, display: false },
+          pointLabels: { fontSize: 20, fontStyle: 'bold', fontColor: '#0f172a' },
+          gridLines: { color: '#cbd5e1' }
+        },
+        legend: { display: false }
+      }
+    };
+    
+    return `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&w=500&h=400&bkg=white`;
+  };
+
+  const getPersonaPngUrl = (svgUrl: string) => {
+      const cleanUrl = svgUrl.replace(/^https?:\/\//, '');
+      return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&output=png`;
+  };
+
+  const processTextForEmail = (text: string, highlightColor: string = '#edae26') => {
+    if (!text) return '';
+    // 將 **text** 和 <b>text</b> 轉為 email 安全的樣式
+    let processed = text.replace(/\*\*\s?([^*]+?)\s?\*\*/g, `<span style="color:${highlightColor}; font-weight:bold;">$1</span>`);
+    processed = processed.replace(/<b>(.*?)<\/b>/g, `<span style="color:${highlightColor}; font-weight:bold;">$1</span>`);
+    processed = processed.replace(/\n/g, '<br>');
+    return processed;
+  };
+
+  const sendToWebhook = async (finalReport: AiReport) => {
+    if (!localSummary) return;
+    setEmailStatus('sending');
+
+    const persona = PERSONAS.find(p => p.id === finalReport.selectedPersonaId) || PERSONAS[5];
+    const totalScore100 = Math.round((localSummary.totalScore / 48) * 100);
+
+    // ==========================================
+    // 1. 生成「四大屬性分析」的 HTML (RWD 優化版)
+    // ==========================================
+    // 修改重點：加入 class="dimension-card" 讓 CSS 可以覆寫 Padding
+    const dimensionsHtml = localSummary.summary.map(item => {
+        // 設定顏色
+        let colorCode = '#ef4444'; // Red
+        let bgCode = '#fef2f2';
+        let textCode = '#b91c1c';
+        
+        if (item.level === '黃燈') {
+            colorCode = '#f97316'; bgCode = '#ffedd5'; textCode = '#c2410c';
+        } else if (item.level === '綠燈') {
+            colorCode = '#22c55e'; bgCode = '#dcfce7'; textCode = '#15803d';
+        }
+
+        const adviceText = getAiAnalysisForCategory(item.category);
+        const processedAdvice = processTextForEmail(adviceText);
+
+        return `
+        <div class="dimension-card" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-left: 8px solid ${colorCode}; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                    <td align="left" style="padding-bottom: 12px;">
+                        <h4 style="margin: 0; font-size: 18px; font-weight: 900; color: #0f172a;">${item.category}</h4>
+                    </td>
+                    <td align="right" style="padding-bottom: 12px;">
+                        <span style="background-color: ${bgCode}; color: ${textCode}; padding: 4px 10px; border-radius: 99px; font-size: 13px; font-weight: bold; white-space: nowrap;">
+                            ${item.level} (${item.score}分)
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <p style="margin: 0; font-size: 16px; color: #334155; line-height: 1.6; text-align: justify;">
+                            ${processedAdvice}
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        `;
+    }).join('');
+
+    // ==========================================
+    // 2. 生成「深色教練總結區塊」的 HTML (RWD 優化版)
+    // ==========================================
+    // 修改重點：加入 class="coach-section" 和 "coach-content"
+    
+    const coachAdviceHtml = processTextForEmail(finalReport.coachGeneralAdvice, '#edae26');
+    const step1TextHtml = processTextForEmail(EXPERT_CONFIG.step1_text, '#edae26');
+    const step2TextHtml = processTextForEmail(EXPERT_CONFIG.step2_text, '#ffffff');
+
+    const coachSectionHtml = `
+    <div class="coach-section" style="background-color: #0f172a; border-radius: 20px; overflow: hidden; margin-top: 30px;">
+        <!-- 圖片區塊 (Width 100%) -->
+        <img src="${EXPERT_CONFIG.imageUrl}" alt="Coach" style="width: 100%; height: auto; display: block;" />
+
+        <!-- 內容容器 -->
+        <div class="coach-content" style="padding: 30px 20px;">
+            
+            <!-- 教練總結標題 -->
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: #edae26; font-size: 22px; font-weight: 900; margin: 0 0 5px 0;">教練總結</h3>
+                <p style="color: #cbd5e1; font-size: 15px; font-weight: 500; margin: 0;">針對你的現況，最重要的下一步</p>
+            </div>
+
+            <!-- AI 建議區塊 (深灰底) -->
+            <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                <div style="color: #e2e8f0; font-size: 16px; line-height: 1.8; text-align: justify;">
+                    ${coachAdviceHtml}
+                </div>
+            </div>
+
+            <!-- 分隔線 -->
+            <div style="text-align: center; margin-bottom: 30px;">
+                <span style="color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(237, 174, 38, 0.05); display: inline-block;">Your Next Step</span>
+            </div>
+
+            <!-- 3天計畫內容 -->
+            <div style="margin-bottom: 35px; text-align: center;">
+                <h4 style="color: #ffffff; font-size: 20px; font-weight: 900; margin: 0 0 15px 0;">${EXPERT_CONFIG.step1_title}</h4>
+                <div style="color: #cbd5e1; font-size: 16px; line-height: 1.7; margin-bottom: 25px; text-align: justify;">
+                    ${step1TextHtml}
+                </div>
+
+                <!-- 計畫卡片 -->
+                <div style="background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; text-align: center;">
+                    <h4 style="color: #edae26; font-size: 18px; font-weight: 900; margin: 0 0 15px 0;">${EXPERT_CONFIG.step2_title}</h4>
+                    <div style="color: #e2e8f0; font-size: 16px; line-height: 1.8; white-space: pre-line; font-weight: 500;">
+                        ${step2TextHtml}
+                    </div>
+                    <p style="color: #94a3b8; font-size: 13px; margin: 20px 0 0 0; font-style: italic; border-top: 1px solid #334155; padding-top: 15px;">
+                        ${EXPERT_CONFIG.closing_text}
+                    </p>
+                </div>
+            </div>
+
+            <!-- CTA 按鈕 (改為 LINE 加好友圖片) -->
+            <div style="text-align: center;">
+                <a href="${SOCIAL_URLS.line}" target="_blank" style="display: block; width: 100%; max-width: 250px; margin: 0 auto; text-decoration: none;">
+                    <img src="${ASSETS.line_button}" style="width: 100%; height: auto; display: block;" alt="${EXPERT_CONFIG.ctaButtonText}" />
+                </a>
+                <p style="color: #64748b; font-size: 12px; font-weight: bold; margin: 15px 0 0 0;">${EXPERT_CONFIG.ctaButtonSubText}</p>
+            </div>
+
+            <!-- Social Links (Email Version) -->
+            <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <table border="0" cellspacing="0" cellpadding="0" align="center">
+                  <tr>
+                    <td style="padding: 0 15px;">
+                        <a href="${SOCIAL_URLS.instagram}" target="_blank" style="text-decoration: none;">
+                            <!-- 🔧在此處修改 width 數值即可改變圖示大小 -->
+                            <img src="${ASSETS.icon_ig}" width="38" style="display: block; opacity: 0.9;" alt="Instagram" />
+                        </a>
+                    </td>
+                    <td style="padding: 0 15px;">
+                        <a href="${SOCIAL_URLS.threads}" target="_blank" style="text-decoration: none;">
+                            <!-- 🔧在此處修改 width 數值即可改變圖示大小 -->
+                            <img src="${ASSETS.icon_threads}" width="38" style="display: block; opacity: 0.9;" alt="Threads" />
+                        </a>
+                    </td>
+                  </tr>
+                </table>
+            </div>
+
+        </div>
+    </div>
+    `;
+
+    // 準備 Payload
+    const tagsHtml = persona.tags.map(t => 
+        `<span style="display:inline-block; background-color:#f1f5f9; color:#475569; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:bold; margin-right:5px; margin-bottom:5px; border:1px solid #cbd5e1;">#${t}</span>`
+    ).join('');
+
+    const dynamicChartUrl = generateRadarChartUrl();
+    const personaPngUrl = getPersonaPngUrl(persona.imageUrl);
+
+    const payload = {
+        submittedAt: new Date().toISOString(),
+        name: userData.name,
+        email: userData.email,
+        total_score: totalScore100,
+        
+        quiz_result: {
+            persona_id: persona.id,
+            persona_title: persona.title,
+            persona_subtitle: persona.subtitle,
+            persona_image_png: personaPngUrl,
+            chart_image_url: dynamicChartUrl,
+            tags_html: tagsHtml,
+        },
+        
+        ai_analysis: {
+            overview: finalReport.personaOverview || persona.subtitle,
+            explanation: processTextForEmail(finalReport.personaExplanation, '#edae26'),
+        },
+
+        // 新增：完整的 HTML 區塊，直接給 n8n 渲染
+        html_components: {
+            dimensions_grid: dimensionsHtml,
+            coach_section: coachSectionHtml
+        }
+    };
+
+    try {
+        const response = await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+             throw new Error(`Webhook failed with status: ${response.status}`);
+        }
+        
+        console.log("Webhook fired successfully");
+        setEmailStatus('success');
+    } catch (e) {
+        console.error("Webhook failed - N8N may be offline or unreachable", e);
+        // 不設定為 error，以免使用者以為沒解鎖成功。
+        setEmailStatus('success'); 
+    }
+  };
+
+  // 解鎖表單送出 (原地解鎖邏輯)
+  const handleUnlockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userData.name || !userData.email) return;
+
+    setIsFormSubmitting(true);
+
+    try {
+        const formData = new FormData();
+        formData.append('first_name', userData.name);
+        formData.append('email', userData.email);
+
+        // Systeme.io (No CORS)
+        await fetch('https://systeme.io/embedded/37702026/subscription', {
+            method: 'POST',
+            body: formData,
+            mode: 'no-cors'
+        });
+        
+        // 延遲一下讓 UX 感覺有在處理
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // 觸發 N8N Webhook (寄信)
+        if (aiAnalysis) {
+             await sendToWebhook(aiAnalysis);
+        }
+
+    } catch (err) {
+        console.error("Systeme.io submission failed", err);
+    } finally {
+        setIsFormSubmitting(false);
+        setIsUnlocked(true); // 關鍵：無論如何都解鎖畫面
+    }
+  };
+
+  const handleRetryEmail = () => {
+    if (aiAnalysis) sendToWebhook(aiAnalysis);
+  };
+
+  const runDiagnosis = async (forceFallback: boolean = false, overrideKey: string = '') => {
+    if (!localSummary) return;
+    
+    const now = Date.now();
+    if (aiFetchingRef.current && !forceFallback && !overrideKey) return;
+    if (!forceFallback && !overrideKey && now - lastFetchTimeRef.current < 2000) return;
+
+    aiFetchingRef.current = true;
+    lastFetchTimeRef.current = now;
+    setIsAiLoading(true);
+    setLastError('');
+    setShowKeyInput(false);
+
+    const totalScore100 = Math.round((localSummary.totalScore / 48) * 100);
+
+    const fallbackAnalysis: AiReport = {
+      selectedPersonaId: localSummary.totalScore > 36 ? 'charmer' : 'neighbor',
+      personaExplanation: forceFallback 
+        ? "⚠️ 這是「基礎分析模式」的報告。因目前 AI 連線異常，系統直接根據您的分數區間進行診斷。" 
+        : "⚠️ AI 連線忙碌中，這是根據您的分數生成的基礎報告。",
+      personaOverview: "您的潛力巨大，建議重新整理頁面再次進行深度分析。",
+      appearanceAnalysis: "保持整潔，找出適合自己的風格是第一步。",
+      socialAnalysis: "社群媒體是您的名片，試著多展現生活感。",
+      interactionAnalysis: "主動一點，故事就會開始。",
+      mindsetAnalysis: "心態決定高度，保持自信。",
+      coachGeneralAdvice: "這是一份基礎戰略報告。請參考上方的雷達圖與維度分析，這依然是你提升魅力的重要起點。若需 **完整的 AI 深度解析**，建議稍後再試。"
+    };
+
+    if (forceFallback) {
+        setTimeout(() => {
+            setAiAnalysis(fallbackAnalysis);
+            // sendToWebhook Removed here - will be called in Unlock Step
+            setIsAiLoading(false);
+            aiFetchingRef.current = false;
+        }, 800);
+        return;
+    }
+
+    const apiKeyToUse = overrideKey || customApiKey || process.env.API_KEY;
+
+    if (!apiKeyToUse) {
+      setLastError("系統設定：請輸入 API Key");
+      setShowKeyInput(true);
+      setIsAiLoading(false);
+      aiFetchingRef.current = false;
+      return;
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
+      const detailedData = QUESTIONS.map(q => ({
+        category: q.category,
+        question: q.text,
+        answer: OPTIONS.find(o => o.value === answers[q.id])?.label || '未答'
+      }));
+
+      const prompt = `
+        你現在是專業形象教練「彭邦典」。這是一位 25-35 歲男性的「脫單力檢核」測驗結果深度報告。
+        數據：總分 ${localSummary.totalScore}/48 (換算百分制約 ${totalScore100}分)。
+        各維度：${JSON.stringify(localSummary.summary.map(s => ({ cat: s.category, score: s.score })))}
+        具體作答：${JSON.stringify(detailedData)}
+        
+        任務指令：請嚴格依照 JSON 格式回傳報告。
+        回傳 JSON 結構：
+        {
+          "selectedPersonaId": "charmer, statue, hustler, neighbor, sage, pioneer 其中之一",
+          "personaExplanation": "深度分析為什麼【你】符合這個人格原型 (請使用第二人稱)",
+          "personaOverview": "一句話總結現狀",
+          "appearanceAnalysis": "針對 形象外表 的分析建議 (請使用第二人稱)",
+          "socialAnalysis": "針對 社群形象 的分析建議 (請使用第二人稱)",
+          "interactionAnalysis": "針對 行動與互動 的分析建議 (請使用第二人稱)",
+          "mindsetAnalysis": "針對 心態與習慣 的分析建議 (請使用第二人稱)",
+          "coachGeneralAdvice": "深度教練總結 (重點)"
+        }
+                任務指令：
+        請分析以上數據，並嚴格依照下方的 JSON 格式回傳報告。
+
+        **重要寫作格式要求 (嚴格執行)：**
+        1. **人稱限制**：直接對著使用者說話，**全程使用「你」來稱呼，絕對禁止使用「他」或第三人稱視角**。這是一份給當事人的私人報告。
+        2. **關鍵字標註(重要)**：請使用 HTML 標籤 <b>你的關鍵字</b> 來標註重點。**不要使用 Markdown 的雙星號 (**) 符號**，因為這會導致 Email 顯示異常。
+        3. **段落分明**：請在不同觀點或段落間，使用 \`\\n\` 進行明確的換行。
+
+        **針對「coachGeneralAdvice (教練總結)」的特殊要求：**
+        1. **字數要求**：請控制在 **300-350字左右**。這需要是一份完整、有深度的教練建議，不要太短。
+        2. **排版要求(關鍵)**：請務必分出 **3-4 個段落**。段落之間請使用明顯的換行。視覺上要舒適，不要擠成一大塊。
+        3. **語氣禁語(嚴格執行)**：**絕對禁止**使用「這不是...而是...」或是「問題不在...而是...」這種對比句型。請直接切入重點，給予肯定的行動方向。
+        4. **用語規範**：請將「請記住」這類語句一律替換為「一定要記得」，展現更堅定的教練語氣。
+        5. **內容核心**：點出他目前最大的盲點，並客觀解釋為什麼**「形象建立」**是他目前最有效的槓桿。告訴他改變外在如何能增強他的自信與機會。
+
+      `;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const text = response.text;
+      if (!text) throw new Error("Empty response");
+
+      const parsedData = JSON.parse(text) as AiReport;
+      setAiAnalysis(parsedData);
+      // sendToWebhook Removed here - will be called in Unlock Step
+
+    } catch (e: any) {
+      console.error("AI Analysis Error:", e);
+      let errorMsg = "連線忙碌中";
+      const errString = e.toString();
+      if (errString.includes("400") && errString.includes("API key")) {
+          errorMsg = "⚠️ API Key 無效";
+          setShowKeyInput(true);
+      } else if (errString.includes("429")) {
+          errorMsg = "⚠️ 請求次數過多";
+          setShowKeyInput(true);
+      } else {
+          errorMsg = `⚠️ 發生錯誤: ${errString.slice(0, 30)}...`;
+      }
+      setLastError(errorMsg);
+      aiFetchingRef.current = false;
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -86,185 +555,14 @@ const App: React.FC = () => {
     if (step === 'diagnosing' && aiAnalysis) {
       setFakeProgress(100);
       const timer = setTimeout(() => {
+        // AI 分析完成，進度條跑完 -> 直接進入結果頁 (半鎖定狀態)
         setStep('result');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 300);
+      }, 800);
       return () => clearTimeout(timer);
     }
   }, [step, aiAnalysis]);
 
-  const localSummary = useMemo(() => {
-    if (step !== 'result' && step !== 'diagnosing') return null;
-    const categories: Category[] = ['形象外表', '社群形象', '行動與互動', '心態與習慣'];
-    const summary = categories.map(cat => {
-      const catQuestions = QUESTIONS.filter(q => q.category === cat);
-      // 計算分數時，將 -1 (我不確定) 視為 0 分處理
-      const score = catQuestions.reduce((acc, q) => {
-          const val = answers[q.id];
-          return acc + (val === -1 ? 0 : (val || 0));
-      }, 0);
-      
-      let level: '紅燈' | '黃燈' | '綠燈' = '紅燈';
-      // 每一類 4 題，每題最高 3 分，滿分 12 分
-      if (score >= 9) { level = '綠燈'; }
-      else if (score >= 5) { level = '黃燈'; }
-      
-      return { 
-        category: cat, 
-        score, 
-        level, 
-        description: CATEGORY_INFO[cat].description, 
-        suggestion: CATEGORY_INFO[cat].suggestions[level] 
-      };
-    });
-
-    const totalScore = summary.reduce((acc, curr) => acc + curr.score, 0);
-    return { summary, totalScore };
-  }, [step, answers]);
-
-  // 獨立出的分析函數
-  const runDiagnosis = async (forceFallback: boolean = false, overrideKey: string = '') => {
-    if (!localSummary) return;
-    
-    // 強制防止短時間內重複呼叫 (如果不是重試模式)
-    const now = Date.now();
-    if (aiFetchingRef.current && !forceFallback && !overrideKey) return;
-    
-    if (!forceFallback && !overrideKey && now - lastFetchTimeRef.current < 2000) {
-        console.log("Request blocked by debounce");
-        return;
-    }
-
-    aiFetchingRef.current = true;
-    lastFetchTimeRef.current = now;
-    setIsAiLoading(true);
-    setLastError('');
-    setShowKeyInput(false);
-
-    // 備用資料 (Fallback)
-    const fallbackAnalysis: AiReport = {
-      selectedPersonaId: localSummary.totalScore > 36 ? 'charmer' : 'neighbor',
-      personaExplanation: forceFallback 
-        ? "⚠️ 這是「基礎分析模式」的報告。因目前 AI 連線異常，系統直接根據您的分數區間進行診斷。" 
-        : "⚠️ AI 連線忙碌中，這是根據您的分數生成的基礎報告。",
-      personaOverview: "您的潛力巨大，建議重新整理頁面再次進行深度分析。",
-      appearanceAnalysis: "保持整潔，找出適合自己的風格是第一步。",
-      socialAnalysis: "社群媒體是您的名片，試著多展現生活感。",
-      interactionAnalysis: "主動一點，故事就會開始。",
-      mindsetAnalysis: "心態決定高度，保持自信。",
-      coachGeneralAdvice: "這是一份基礎戰略報告。請參考上方的雷達圖與維度分析，這依然是你提升魅力的重要起點。若需 **完整的 AI 深度解析**，建議稍後再試。"
-    };
-
-    if (forceFallback) {
-        setTimeout(() => {
-            setAiAnalysis(fallbackAnalysis);
-            setIsAiLoading(false);
-            aiFetchingRef.current = false;
-        }, 800);
-        return;
-    }
-
-    // 優先使用手動輸入的 Key，否則使用環境變數
-    const apiKeyToUse = overrideKey || customApiKey || process.env.API_KEY;
-
-    if (!apiKeyToUse) {
-      console.error("API Key is missing.");
-      setLastError("系統設定：請輸入 API Key");
-      setShowKeyInput(true);
-      setIsAiLoading(false);
-      aiFetchingRef.current = false;
-      return;
-    }
-
-    try {
-      console.log("Initializing Google GenAI...");
-      const ai = new GoogleGenAI({ apiKey: apiKeyToUse });
-      
-      const detailedData = QUESTIONS.map(q => ({
-        category: q.category,
-        question: q.text,
-        answer: OPTIONS.find(o => o.value === answers[q.id])?.label || '未答'
-      }));
-
-      const prompt = `
-        你現在是專業形象教練「彭邦典」。這是一位 25-35 歲男性的「脫單力檢核」測驗結果深度報告。
-        
-        數據：
-        1. 總分：${localSummary.totalScore}/48
-        2. 各維度分數：${JSON.stringify(localSummary.summary.map(s => ({ cat: s.category, score: s.score })))}
-        3. 具體作答：${JSON.stringify(detailedData)}
-
-        任務指令：
-        請分析以上數據，並嚴格依照下方的 JSON 格式回傳報告。不要包含任何 Markdown 格式標記（如 \`\`\`json）。
-
-        **寫作風格重點（請在輸出文字中加入標記）：**
-        當你想強調某個重點、關鍵字或強烈建議時，請使用 \`**重點文字**\` 的格式（前後加兩個星號）。
-        
-        **撰寫語氣要求：**
-
-        1. 戰略大於執行：嚴格禁止提供瑣碎的「具體執行事項」（如：去剪頭髮、買保養品）。這些細節留給課程。你要給的是「宏觀戰略」。
-        2. 語氣口吻：
-           - 像一位**有經驗的兄長**，語氣**平穩、堅定，一針見血但也帶有溫度**。
-           - 不過度攻擊，重點在於「引導」與「建設性」。
-           - 排版要求：請在不同觀點或段落間，使用 \`\\n\` 進行明確的換行。我們會在前端將每一段分開顯示，所以請確保段落之間有清楚的邏輯區隔。
-        3. 【關鍵】：結尾的導流鋪陳
-           - 在建議的最後一段，你必須明確指出：**「知道問題在哪裡」跟「能夠解決問題」是兩回事**。
-           - 告訴他，如果缺乏一套有系統的計畫，憑感覺摸索很容易重蹈覆轍。
-           - 用一句話引導他去看下方的教練計畫。
-
-        必須回傳的 JSON 結構範本：
-        {
-          "selectedPersonaId": "從 [charmer, statue, hustler, neighbor, sage, pioneer] 中選一個最貼切的 ID",
-          "personaExplanation": "根據他的具體作答內容，深度分析為什麼他符合這個人格原型 (約 150-200 字，分兩至三段，段落間用 \\n 換行，請適度使用 **重點** 標記)",
-          "personaOverview": "一句話總結他的現狀",
-          "appearanceAnalysis": "針對形象外表的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
-          "socialAnalysis": "針對社群形象的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
-          "interactionAnalysis": "針對行動與互動的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
-          "mindsetAnalysis": "針對心態與習慣的具體分析與建議 (約 50 字，請適度使用 **重點** 標記)",
-          "coachGeneralAdvice": "教練的總結戰略建議 (約 250-350 字，請務必分段，使用 \\n 換行。**請大量使用重點標記來強調關鍵心法**。結尾必須引導他去看下方的教練計畫)"
-        }
-
-        關於 Persona 選擇規則：
-        - 若總分 > 38 且各維度均衡，selectedPersonaId 必須是 'charmer'。
-      `;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json'
-        }
-      });
-
-      const text = response.text;
-      if (!text) throw new Error("Empty response from Gemini");
-
-      const parsedData = JSON.parse(text) as AiReport;
-      setAiAnalysis(parsedData);
-
-    } catch (e: any) {
-      console.error("AI Analysis Error:", e);
-      let errorMsg = "連線忙碌中";
-      const errString = e.toString();
-      if (errString.includes("400") && errString.includes("API key")) {
-          errorMsg = "⚠️ API Key 無效";
-          setShowKeyInput(true);
-      } else if (errString.includes("429")) {
-          errorMsg = "⚠️ 請求次數過多";
-          setShowKeyInput(true);
-      } else if (errString.includes("500") || errString.includes("503")) {
-          errorMsg = "⚠️ 伺服器繁忙";
-      } else {
-          errorMsg = `⚠️ 發生錯誤: ${errString.slice(0, 30)}...`;
-      }
-      setLastError(errorMsg);
-      aiFetchingRef.current = false;
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  // 初始觸發
   useEffect(() => {
     if (step === 'diagnosing' && localSummary && !aiFetchingRef.current && !lastError && !aiAnalysis && !showKeyInput) {
         runDiagnosis(false);
@@ -275,7 +573,7 @@ const App: React.FC = () => {
     if (step === 'result' && localSummary && radarChartRef.current) {
       const ctx = radarChartRef.current.getContext('2d');
       const isMobile = window.innerWidth < 768;
-      const labelFontSize = isMobile ? 16 : 20;
+      const labelFontSize = isMobile ? 22 : 24;
 
       if (ctx) {
         if (chartInstance.current) chartInstance.current.destroy();
@@ -287,20 +585,23 @@ const App: React.FC = () => {
             datasets: [{
               label: '脫單力',
               data: localSummary.summary.map(r => r.score),
-              backgroundColor: 'rgba(59, 130, 246, 0.2)',
-              borderColor: 'rgba(59, 130, 246, 1)',
+              backgroundColor: 'rgba(37, 99, 235, 0.2)', // Blue-600
+              borderColor: 'rgba(37, 99, 235, 1)',
               borderWidth: 3,
-              pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+              pointBackgroundColor: 'rgba(37, 99, 235, 1)',
               pointBorderColor: '#fff',
             }]
           },
           options: {
+            layout: {
+               padding: 20
+            },
             scales: { 
               r: { 
-                min: 0, max: 12, ticks: { display: false, stepSize: 3 }, // 滿分 12
+                min: 0, max: 12, ticks: { display: false, stepSize: 3 },
                 pointLabels: { 
-                    font: { size: labelFontSize, weight: 'bold', family: "'Noto Sans TC', sans-serif" }, 
-                    color: '#334155' 
+                    font: { size: labelFontSize, weight: 'bold', family: "'Helvetica Neue', 'Noto Sans TC', sans-serif" }, 
+                    color: '#0f172a' 
                 }
               } 
             },
@@ -313,9 +614,14 @@ const App: React.FC = () => {
   }, [step, localSummary]);
 
   const handleAnswer = (val: number) => {
+    if (isAnsweringRef.current) return;
+    isAnsweringRef.current = true;
+
     setAnswers(prev => ({ ...prev, [QUESTIONS[currentIdx].id]: val }));
+    
     setTimeout(() => {
         nextStep();
+        isAnsweringRef.current = false;
     }, 250); 
   };
   
@@ -323,10 +629,10 @@ const App: React.FC = () => {
     if (isIntroMode) { setIsIntroMode(false); return; }
     if (currentIdx < QUESTIONS.length - 1) {
       const nextIdx = currentIdx + 1;
-      // 這裡維持原邏輯：每 4 題一個分類
       if (nextIdx % 4 === 0) setIsIntroMode(true);
       setCurrentIdx(nextIdx);
     } else {
+      // 測驗結束後 -> 診斷
       setStep('diagnosing');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -334,12 +640,8 @@ const App: React.FC = () => {
 
   const prevStep = () => {
     if (isIntroMode) {
-      if (currentIdx > 0) { 
-        setIsIntroMode(false); 
-        setCurrentIdx(currentIdx - 1); 
-      } else {
-        setStep('hero');
-      }
+      if (currentIdx > 0) { setIsIntroMode(false); setCurrentIdx(currentIdx - 1); } 
+      else { setStep('hero'); }
       return;
     }
     if (currentIdx % 4 === 0) setIsIntroMode(true);
@@ -349,8 +651,7 @@ const App: React.FC = () => {
   const activePersona = useMemo(() => {
     if (!aiAnalysis) return PERSONAS[5];
     const normalizedId = aiAnalysis.selectedPersonaId.toLowerCase().trim();
-    const found = PERSONAS.find(p => p.id === normalizedId);
-    return found || PERSONAS[5];
+    return PERSONAS.find(p => p.id === normalizedId) || PERSONAS[5];
   }, [aiAnalysis]);
 
   const getAiAnalysisForCategory = (category: Category) => {
@@ -365,11 +666,23 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-0 md:py-8">
+    <div className="min-h-screen max-w-2xl mx-auto flex flex-col items-center px-0 md:px-8 py-0 md:py-8 font-sans">
+      {/* 解決瀏覽器自動填入背景色問題的 CSS Hack */}
+      <style>{`
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            -webkit-text-fill-color: #0f172a !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+
       {step === 'hero' && (
         <div className="flex-1 flex flex-col justify-start md:justify-center w-full animate-fade-in py-6 md:py-10 space-y-4 md:space-y-12 px-4 md:px-0">
           <div className="text-center space-y-2 md:space-y-4 relative z-20">
-            <h1 className="text-3xl md:text-7xl font-black text-slate-900 tracking-tighter leading-normal py-1">脫單力檢核分析</h1>
+            <h1 className="text-3xl md:text-7xl font-black text-[#0f172a] tracking-tighter leading-normal py-1">脫單力檢核分析</h1>
             <div className="space-y-1 md:space-y-2">
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
@@ -380,15 +693,20 @@ const App: React.FC = () => {
              <img src="https://d1yei2z3i6k35z.cloudfront.net/2452254/694caa69f0eb6_main.svg" className="object-contain w-full h-full drop-shadow-2xl" />
           </div>
 
+          {/* Hero Button Section - Simplified */}
           <div className="px-2 md:px-4 w-full relative z-20">
-            <button 
-              onClick={handleStart} 
-              className="w-full relative overflow-hidden bg-slate-900 hover:bg-black text-white font-black py-4 md:py-7 rounded-[2rem] md:rounded-[2.5rem] text-2xl md:text-3xl shadow-2xl transition transform active:scale-95 text-center group animate-shimmer"
-            >
-              <span className="relative z-10">啟動深度分析</span>
-            </button>
+            <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-slate-100 space-y-4 animate-slide-up">
+                <div className="text-center space-y-1 mb-2">
+                    <h3 className="text-xl md:text-2xl font-black text-[#0f172a]">準備好了嗎？</h3>
+                    <p className="text-sm md:text-base text-slate-500 font-bold">只需要 3 分鐘，找出你的魅力盲點</p>
+                </div>
+                 <button onClick={handleStartQuiz} className={`w-full relative overflow-hidden bg-[#0f172a] hover:bg-black text-white font-black py-4 md:py-6 rounded-2xl text-xl md:text-2xl shadow-xl transition transform active:scale-95 text-center flex items-center justify-center`}>
+                     <span>開始檢測 👉</span>
+                 </button>
+            </div>
           </div>
 
+          {/* Features Grid */}
           <div className="grid grid-cols-1 gap-4 md:gap-6 px-2 md:px-4">
             {[
               { icon: '✨', title: '魅力原型', desc: '分析你在戀愛市場中的真實定位', color: 'rgba(244, 63, 94, 0.4)' },
@@ -398,7 +716,7 @@ const App: React.FC = () => {
               <div key={i} className="flex items-center space-x-4 md:space-x-6 bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 group cursor-default">
                 <div className="text-4xl md:text-6xl transition-transform duration-300 group-hover:scale-110" style={{ filter: `drop-shadow(0 4px 6px ${feature.color})` }}>{feature.icon}</div>
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black text-slate-800">{feature.title}</h3>
+                  <h3 className="text-xl md:text-2xl font-black text-[#0f172a]">{feature.title}</h3>
                   <p className="text-sm md:text-lg text-slate-400 font-medium">{feature.desc}</p>
                 </div>
               </div>
@@ -423,50 +741,33 @@ const App: React.FC = () => {
             {isIntroMode ? (
               <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl border border-slate-100 text-center flex flex-col items-center">
                 <div className="mb-4 md:mb-6 text-5xl md:text-7xl animate-bounce">
-                  {/* 圖標映射更新：0:形象, 4:社群, 8:互動, 12:心態 */}
                   {currentIdx === 0 ? '👔' : currentIdx === 4 ? '📸' : currentIdx === 8 ? '💬' : '🔥'}
                 </div>
-                <h2 className="text-3xl md:text-5xl font-black text-slate-800 mb-2 md:mb-4">{QUESTIONS[currentIdx].category}</h2>
+                <h2 className="text-3xl md:text-5xl font-black text-[#0f172a] mb-2 md:mb-4">{QUESTIONS[currentIdx].category}</h2>
                 <p className="text-lg md:text-2xl text-slate-500 leading-relaxed mb-6 md:mb-10">{CATEGORY_INFO[QUESTIONS[currentIdx].category].description}</p>
                 <div className="w-full space-y-3 md:space-y-4">
-                  <button onClick={nextStep} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 md:py-6 rounded-2xl text-xl md:text-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95">進入測驗</button>
+                  <button onClick={nextStep} className="w-full bg-[#0f172a] hover:bg-slate-800 text-white font-bold py-4 md:py-6 rounded-2xl text-xl md:text-2xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95">進入測驗</button>
                   <button onClick={prevStep} className="w-full py-2 md:py-4 text-base md:text-lg text-slate-400 font-bold hover:text-slate-600 transition-colors">回到上一題</button>
                 </div>
               </div>
             ) : (
               <div className="space-y-4 md:space-y-6">
                 <div className="bg-white p-5 md:p-10 rounded-[2rem] md:rounded-[2.5rem] shadow-xl border border-slate-100 min-h-[160px] md:min-h-[200px] flex items-center justify-center">
-                  <h2 className="text-xl md:text-3xl font-black text-slate-800 text-center leading-relaxed px-1 md:px-4">{QUESTIONS[currentIdx].text}</h2>
+                  <h2 className="text-xl md:text-3xl font-black text-[#0f172a] text-center leading-relaxed px-1 md:px-4">{QUESTIONS[currentIdx].text}</h2>
                 </div>
-                
                 <div className="space-y-2.5 md:space-y-3">
                   {OPTIONS.map((opt, idx) => {
                     const isSelected = answers[QUESTIONS[currentIdx].id] === opt.value;
                     return (
-                      <button 
-                        key={opt.value} 
-                        onClick={() => handleAnswer(opt.value)} 
-                        className={`group w-full p-3.5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in
-                          ${isSelected 
-                            ? 'border-blue-600 bg-blue-50 shadow-md scale-[0.98]' 
-                            : 'border-slate-50 bg-white hover:border-blue-200 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md'
-                          }
-                        `}
-                        style={{ animationDelay: `${idx * 70}ms` }}
-                      >
-                        <span className={`font-bold text-lg md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>
-                          {opt.label}
-                        </span>
-                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300
-                           ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}
-                        `}>
+                      <button key={opt.value} onClick={() => handleAnswer(opt.value)} className={`group w-full p-3.5 md:p-6 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between animate-pop-in ${isSelected ? 'border-blue-600 bg-blue-50 shadow-md scale-[0.98]' : 'border-slate-50 bg-white hover:border-blue-200 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md'}`} style={{ animationDelay: `${idx * 70}ms` }}>
+                        <span className={`font-bold text-lg md:text-2xl transition-colors ${isSelected ? 'text-blue-700' : 'text-slate-700 group-hover:text-blue-600'}`}>{opt.label}</span>
+                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-200 group-hover:border-blue-400'}`}>
                           <div className={`w-2.5 h-2.5 bg-white rounded-full transition-transform duration-200 ${isSelected ? 'scale-100' : 'scale-0'}`}></div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-
                 <div className="flex items-center px-2 pt-2 md:pt-4">
                   <button onClick={prevStep} className="w-full py-3 md:py-4 rounded-2xl font-bold text-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">回到上一題</button>
                 </div>
@@ -478,14 +779,20 @@ const App: React.FC = () => {
 
       {step === 'diagnosing' && (
         <div className="flex-1 flex flex-col items-center justify-center w-full min-h-[60vh] space-y-12 animate-fade-in text-center px-6 md:px-0">
-          {!lastError ? (
+          {!localSummary ? (
+              <div className="text-center space-y-4">
+                  <div className="text-4xl">⚠️</div>
+                  <h3 className="text-xl font-bold text-[#0f172a]">分數計算錯誤</h3>
+                  <button onClick={handleRestart} className="px-6 py-2 bg-[#0f172a] text-white rounded-xl">重試</button>
+              </div>
+          ) : !lastError ? (
             <>
               <div className="relative">
                 <div className="w-32 h-32 border-8 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-slate-800">{Math.floor(fakeProgress)}%</div>
+                <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-[#0f172a]">{Math.floor(fakeProgress)}%</div>
               </div>
               <div className="space-y-4">
-                <h2 className="text-4xl font-black text-slate-900 tracking-tight">診斷引擎正在啟動</h2>
+                <h2 className="text-4xl font-black text-[#0f172a] tracking-tight">診斷引擎正在啟動</h2>
                 <div className="flex flex-col space-y-2 text-xl text-slate-500 font-bold">
                   <span className={`transition-all duration-500 ${fakeProgress > 15 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 正在分析你的作答細節...</span>
                   <span className={`transition-all duration-500 ${fakeProgress > 45 ? 'text-blue-600 translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>● 比對 社交成功案例...</span>
@@ -500,47 +807,21 @@ const App: React.FC = () => {
             <div className="space-y-6 bg-white p-8 rounded-[2.5rem] shadow-xl border-2 border-slate-200 max-w-md w-full animate-fade-in">
                 <div className="text-6xl animate-bounce">🔐</div>
                 <div className="space-y-2">
-                    <h3 className="text-2xl font-black text-slate-800">
-                      {showKeyInput ? "系統設定未完成" : "連線發生問題"}
-                    </h3>
-                    <p className="text-slate-500 font-medium text-lg">
-                        {showKeyInput 
-                          ? "此網站尚未配置 Gemini API Key。" 
-                          : lastError}
-                    </p>
+                    <h3 className="text-2xl font-black text-[#0f172a]">{showKeyInput ? "系統設定未完成" : "連線發生問題"}</h3>
+                    <p className="text-slate-500 font-medium text-lg">{showKeyInput ? "此網站尚未配置 Gemini API Key。" : lastError}</p>
                 </div>
                 {showKeyInput ? (
                    <div className="space-y-4 pt-4">
                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-left space-y-2">
                           <p className="text-sm font-bold text-slate-700">【臨時測試通道】</p>
-                          <input 
-                            type="text" 
-                            value={customApiKey}
-                            onChange={(e) => setCustomApiKey(e.target.value)}
-                            placeholder="貼上您的 Gemini API Key (AIza...)"
-                            className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
-                          />
+                          <input type="text" value={customApiKey} onChange={(e) => setCustomApiKey(e.target.value)} placeholder="貼上您的 Gemini API Key (AIza...)" className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm" />
                        </div>
-                       <button 
-                         onClick={() => runDiagnosis(false)} 
-                         disabled={!customApiKey}
-                         className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-lg
-                           ${customApiKey 
-                             ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                           }`}
-                       >
-                           確認並開始分析
-                       </button>
+                       <button onClick={() => runDiagnosis(false)} disabled={!customApiKey} className={`w-full py-4 rounded-2xl font-bold transition-colors shadow-lg ${customApiKey ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>確認並開始分析</button>
                    </div>
                 ) : (
-                   <button onClick={() => runDiagnosis(false)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-colors shadow-lg shadow-slate-200">
-                       重試連線
-                   </button>
+                   <button onClick={() => runDiagnosis(false)} className="w-full py-4 bg-[#0f172a] text-white rounded-2xl font-bold hover:bg-black transition-colors shadow-lg shadow-slate-200">重試連線</button>
                 )}
-                <button onClick={() => runDiagnosis(true)} className="w-full py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors">
-                    跳過 AI，直接查看基礎報告
-                </button>
+                <button onClick={() => runDiagnosis(true)} className="w-full py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-colors">跳過 AI，直接查看基礎報告</button>
             </div>
           )}
           <p className="text-slate-400 font-medium italic">「魅力不是天生，而是可以學習的技能」</p>
@@ -549,134 +830,262 @@ const App: React.FC = () => {
 
       {step === 'result' && localSummary && aiAnalysis && (
         <div className="w-full space-y-10 animate-fade-in pb-12">
+          {/* Persona Card (Top Part - Visible) */}
           <div className="bg-white rounded-b-[2.5rem] md:rounded-[3.5rem] shadow-2xl overflow-hidden border-b md:border border-slate-100 animate-slide-up" style={{ animationDelay: '0ms' }}>
-            <div className="relative aspect-[3/4] md:aspect-[21/9] flex items-end justify-center bg-gray-900">
+            {/* Image Container */}
+            <div className="relative aspect-[3/4] md:aspect-[21/9] flex items-end justify-center bg-[#0f172a]">
               <img src={activePersona.imageUrl} alt={activePersona.title} className="w-full h-full object-cover object-top" />
-              <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white bg-gradient-to-t from-black/90 via-black/50 to-transparent w-full pt-24 md:pt-32">
+              <div className="absolute bottom-0 left-0 p-6 md:p-10 text-white bg-gradient-to-t from-[#0f172a]/95 via-[#0f172a]/70 to-transparent w-full pt-24 md:pt-32">
                 <div className="flex flex-col items-start space-y-1 mb-2">
-                   <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">Persona</span>
+                   <div className="flex items-center space-x-3 mb-2">
+                       <span className="bg-blue-600 text-white text-[10px] md:text-xs font-bold px-2 md:px-3 py-1 rounded-full uppercase tracking-wider">Persona Analysis</span>
+                       {emailStatus === 'success' && (
+                         <span className="flex items-center text-xs md:text-sm font-bold text-green-400">
+                           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                           報告已寄出
+                         </span>
+                       )}
+                   </div>
                 </div>
                 <h2 className="text-3xl md:text-6xl font-black tracking-tight mb-2 leading-tight">{activePersona.title}</h2>
-                <p className="text-lg md:text-3xl font-medium text-white/90 italic leading-snug">
-                  {renderFormattedText(aiAnalysis.personaOverview || activePersona.subtitle, 'text-amber-400')}
-                </p>
+                <p className="text-lg md:text-3xl font-medium italic leading-snug text-[#edae26]">{renderFormattedText(aiAnalysis.personaOverview || activePersona.subtitle, 'text-[#edae26]')}</p>
               </div>
             </div>
+            
             <div className="p-8 md:p-10 space-y-8">
               <div className="flex flex-wrap gap-3">
                 {activePersona.tags.map((tag, i) => (
-                  <span key={tag} className="px-6 py-3 bg-slate-100 text-slate-800 rounded-full text-xl font-black border border-slate-200 animate-pop-in" style={{ animationDelay: `${i * 100 + 300}ms` }}># {tag}</span>
+                  <span key={tag} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-full text-xl font-bold border border-slate-200 animate-pop-in" style={{ animationDelay: `${i * 100 + 300}ms` }}># {tag}</span>
                 ))}
-              </div>
-              <div className="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100">
-                 <h5 className="text-blue-600 font-black text-2xl uppercase tracking-widest mb-3">人格診斷分析</h5>
-                 <div className="space-y-6">
-                    {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-slate-800 text-lg md:text-xl leading-relaxed font-bold">
-                            {renderFormattedText(line, 'text-blue-700')}
-                        </p>
-                    ))}
-                 </div>
               </div>
             </div>
           </div>
 
-          <div className="px-4 md:px-0 space-y-10">
-            <div className="bg-white p-6 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up" style={{ animationDelay: '200ms' }}>
-                <div className="text-4xl md:text-5xl font-black text-slate-800 mb-8">總體魅力：<span className="text-blue-600">{localSummary.totalScore}</span> <span className="text-slate-300 text-xl">/ 48</span></div>
-                <div className="h-[20rem] md:h-[24rem] mb-6"><canvas ref={radarChartRef}></canvas></div>
+          <div className="w-full md:px-0 space-y-10">
+            {/* Radar Chart (Visible) - 8px margin */}
+            <div className="mx-2 md:mx-0 bg-white p-6 md:p-10 rounded-[3rem] shadow-xl border border-slate-50 text-center animate-slide-up relative overflow-hidden" style={{ animationDelay: '200ms' }}>
+                <div className="text-3xl md:text-5xl font-black text-[#0f172a] mb-6 md:mb-8">
+                    總體魅力：<span className="text-[#edae26]">{Math.round((localSummary.totalScore / 48) * 100)}</span> <span className="text-slate-300 text-xl">/ 100</span>
+                </div>
+                <div className="h-[20rem] md:h-[24rem] mb-6 flex items-center justify-center relative">
+                    <canvas ref={radarChartRef}></canvas>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-6">
-                <div className="text-center py-4 animate-slide-up" style={{ animationDelay: '300ms' }}>
-                    <h3 className="text-3xl font-black text-slate-900 tracking-tighter">四大屬性深度剖析</h3>
-                    <p className="text-xl text-slate-400 font-bold"> 針對你的回答細節產生的專屬建議</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {localSummary.summary.map((item, idx) => (
-                    <div key={item.category} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-lg border border-slate-100 flex flex-col space-y-4 relative overflow-hidden group hover:shadow-xl transition-all animate-slide-up" style={{ animationDelay: `${idx * 100 + 400}ms` }}>
-                        <div className={`absolute top-0 left-0 w-2 h-full ${item.level === '綠燈' ? 'bg-green-500' : item.level === '黃燈' ? 'bg-orange-400' : 'bg-red-500'}`}></div>
-                        <div className="flex items-center justify-between pl-4">
-                            <h4 className="text-2xl font-black text-slate-800">{item.category}</h4>
-                            <span className={`px-4 py-1.5 rounded-full text-base font-black ${item.level === '綠燈' ? 'bg-green-100 text-green-700' : item.level === '黃燈' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
-                            {item.level} ({item.score}分)
-                            </span>
-                        </div>
-                        <p className="text-lg md:text-xl text-slate-600 leading-relaxed pl-4 text-justify font-medium">
-                        {renderFormattedText(getAiAnalysisForCategory(item.category), 'text-slate-900')}
-                        </p>
-                    </div>
+            {/* Persona Detailed Explanation (Now UNLOCKED / VISIBLE) - 8px margin */}
+            <div className="mx-2 md:mx-0 bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-100 shadow-sm animate-slide-up">
+                <h5 className="text-[#edae26] font-black text-xl uppercase tracking-widest mb-6">人格診斷報告</h5>
+                <div className="space-y-6">
+                    {aiAnalysis.personaExplanation.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                        <p key={idx} className="text-[#0f172a] text-lg md:text-xl leading-relaxed font-bold">{renderFormattedText(line, 'text-[#edae26]')}</p>
                     ))}
                 </div>
             </div>
 
-            {activePersona.id === 'charmer' ? (
-                <div className="bg-gradient-to-br from-slate-900 to-black rounded-[3.5rem] shadow-2xl p-10 md:p-14 text-center space-y-8 animate-fade-in border border-slate-800">
-                <div className="text-6xl md:text-8xl">🏆</div>
-                <h4 className="text-3xl md:text-4xl font-black text-white">你已是頂級魅力家</h4>
-                <p className="text-slate-300 text-xl md:text-2xl font-bold">教練對你唯一的建議是：好好善用這份天賦。祝你一帆風順！</p>
-                </div>
-            ) : (
-                <div className="rounded-[3.5rem] shadow-2xl overflow-hidden border border-slate-100 flex flex-col bg-white animate-slide-up" style={{ animationDelay: '600ms' }}>
-                <div className="w-full relative">
-                    <img src={EXPERT_CONFIG.imageUrl} alt="Expert Coach" className="w-full h-auto block object-cover" />
-                </div>
-                <div className="bg-slate-900 p-8 md:p-12 space-y-8 flex-1">
-                    <div className="space-y-6">
-                    <div className="flex items-center space-x-3">
-                        <span className="text-3xl">💡</span>
-                        <h3 className="text-3xl font-black text-amber-400 tracking-tight">教練總結</h3>
-                    </div>
-                    <div className="space-y-6 md:space-y-8">
-                        {aiAnalysis.coachGeneralAdvice.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
-                        <p key={idx} className="text-xl md:text-2xl leading-relaxed font-bold text-white text-justify tracking-wide">
-                            {renderFormattedText(line, 'text-amber-400')}
-                        </p>
-                        ))}
-                    </div>
+            {/* ====== Locked Content Section Start (Dimensions & Coach) ====== */}
+            <div className="relative transition-all duration-700 ease-in-out" id="detailed-report">
+                
+                {/* Content Container */}
+                <div className="space-y-10">
                     
-                    <div className="py-8">
-                         <div className="flex items-center space-x-4 mb-4">
-                             <div className="h-px bg-slate-700 flex-1"></div>
-                             <span className="text-amber-400 font-black tracking-widest uppercase text-base border border-amber-400/30 px-4 py-1.5 rounded-full bg-amber-400/10">
-                                Your Next Step
-                             </span>
-                             <div className="h-px bg-slate-700 flex-1"></div>
+                    {/* Analysis Grid */}
+                    <div className="grid grid-cols-1 gap-6 mx-2 md:mx-0">
+                        {/* Header is Visible */}
+                        <div className="text-center py-4 animate-slide-up">
+                            <h3 className="text-3xl font-black text-[#0f172a] tracking-tighter">四大屬性深度剖析</h3>
+                        </div>
+                        
+                        {/* Grid Content */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {localSummary.summary.map((item, idx) => (
+                            <div key={item.category} className="bg-white p-5 md:p-8 rounded-[2.5rem] shadow-lg border border-slate-100 flex flex-col space-y-4 relative overflow-hidden group hover:shadow-xl transition-all animate-slide-up">
+                                <div className={`absolute top-0 left-0 w-2 h-full ${item.level === '綠燈' ? 'bg-green-500' : item.level === '黃燈' ? 'bg-orange-400' : 'bg-red-500'}`}></div>
+                                <div className="flex items-center justify-between pl-4">
+                                    <h4 className="text-2xl font-black text-[#0f172a]">{item.category}</h4>
+                                    <span className={`px-4 py-1.5 rounded-full text-base font-black ${item.level === '綠燈' ? 'bg-green-100 text-green-700' : item.level === '黃燈' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                    {item.level} ({item.score}分)
+                                    </span>
+                                </div>
+                                {/* BLURRED TEXT IF LOCKED */}
+                                <div className="relative">
+                                    <p className={`text-lg md:text-xl text-[#1e293b] leading-relaxed pl-1 md:pl-4 text-justify font-medium transition-all duration-700 break-words whitespace-normal ${!isUnlocked ? 'filter blur-md select-none opacity-50' : ''}`}>{renderFormattedText(getAiAnalysisForCategory(item.category), 'text-[#edae26]')}</p>
+                                    {!isUnlocked && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="bg-slate-100/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-500 shadow-sm border border-slate-200">
+                                                🔒 請往下滑動解鎖完整建議
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Coach Summary / Expert Section - 4px margin (1/3 of previous) */}
+                    <div className="mx-1 md:mx-0 bg-[#0f172a] rounded-[2.5rem] overflow-hidden shadow-2xl animate-slide-up relative">
+                         {/* 1. Full Width Image (Visible) - EXACTLY LIKE EMAIL HEADER */}
+                         <div className="w-full relative">
+                             <img src={EXPERT_CONFIG.imageUrl} alt="Coach" className="w-full h-auto object-cover block" />
+                             <div className="absolute inset-0 bg-gradient-to-t from-[#0f172a] to-transparent opacity-20"></div>
                          </div>
-                         <h4 className="text-center text-white font-bold text-3xl md:text-5xl tracking-tight mb-8">從「知道」到「做到」</h4>
+                         
+                         {/* 2. Content Container - Reduced padding to allow inner cards to expand */}
+                         <div className="p-2 md:p-12 relative">
+                             
+                             {/* Coach Title (Visible) */}
+                             <div className="mb-8 px-2 md:px-0">
+                                 <h3 className="text-[#edae26] text-3xl font-black mb-2">教練總結 {isUnlocked && '(解鎖完成)'}</h3>
+                                 <p className="text-slate-300 font-medium text-lg">針對你的現況，最重要的下一步</p>
+                             </div>
+
+                             {/* Advice Text & CTA (Blurred if locked) */}
+                             {/* Added min-h when locked to ensure form fits without covering title */}
+                             <div className={`relative transition-all duration-700 ${!isUnlocked ? 'min-h-[600px]' : ''}`}>
+                                 
+                                 {/* AI Generated Advice (Modified: 鎖定時不再模糊，而是使用漸層遮罩) */}
+                                 <div className={`bg-[#1e293b] p-5 md:p-8 rounded-[2rem] border border-slate-700 mb-8 transition-all duration-700 relative overflow-hidden ${!isUnlocked ? 'max-h-[280px]' : ''}`}>
+                                    <div className="space-y-4 text-justify">
+                                        {aiAnalysis.coachGeneralAdvice.split('\n').map((paragraph, idx) => {
+                                            const trimmed = paragraph.trim();
+                                            if (!trimmed) return null;
+                                            return (
+                                                <p key={idx} className="text-lg md:text-xl leading-relaxed font-medium text-slate-200">
+                                                    {renderFormattedText(trimmed, 'text-[#edae26]')}
+                                                </p>
+                                            );
+                                        })}
+                                    </div>
+                                    {/* 鎖定時的漸層遮罩：透明 -> 深藍色，模擬文字漸隱 */}
+                                    {!isUnlocked && (
+                                        <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent from-20% via-[#1e293b]/90 to-[#1e293b]"></div>
+                                    )}
+                                 </div>
+
+                                 {/* Separator: Your Next Step (Structure Restored) */}
+                                 <div className={`py-8 transition-all duration-700 ${!isUnlocked ? 'filter blur-md select-none opacity-40' : ''}`}>
+                                     <div className="flex items-center justify-center space-x-4">
+                                         <div className="h-[1px] bg-slate-700 w-1/4"></div>
+                                         <span className="text-[#edae26] text-xs font-black tracking-[0.2em] uppercase border border-[#edae26]/30 px-4 py-2 rounded-full bg-[#edae26]/5">Your Next Step</span>
+                                         <div className="h-[1px] bg-slate-700 w-1/4"></div>
+                                     </div>
+                                 </div>
+
+                                 {/* 3-Day Plan Content (Replaces Course Info) */}
+                                 <div className={`space-y-8 mb-12 transition-all duration-700 ${!isUnlocked ? 'filter blur-md select-none opacity-40' : ''}`}>
+                                     {/* Knowing != Doing */}
+                                     <div className="text-center space-y-4 px-2 md:px-0">
+                                         <h4 className="text-white text-2xl md:text-3xl font-black">{EXPERT_CONFIG.step1_title}</h4>
+                                         <p className="text-slate-300 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto">
+                                            {renderFormattedText(EXPERT_CONFIG.step1_text, 'text-[#edae26]')}
+                                         </p>
+                                     </div>
+
+                                     {/* The 3-Day Plan Detail */}
+                                     <div className="bg-[#1e293b] p-5 md:p-8 rounded-[2rem] border border-slate-700 text-center space-y-4">
+                                         <h4 className="text-[#edae26] text-2xl font-black mb-4">{EXPERT_CONFIG.step2_title}</h4>
+                                         <div className="text-slate-200 text-lg leading-loose whitespace-pre-line font-medium">
+                                             {renderFormattedText(EXPERT_CONFIG.step2_text, 'text-white')}
+                                         </div>
+                                         <p className="text-slate-400 text-sm mt-4 italic border-t border-slate-700 pt-4">{EXPERT_CONFIG.closing_text}</p>
+                                     </div>
+                                 </div>
+                                 
+                                 <div className={`text-center transition-all duration-700 ${!isUnlocked ? 'filter blur-md select-none opacity-40' : ''}`}>
+                                     <a href={SOCIAL_URLS.line} target="_blank" rel="noopener noreferrer" className="inline-block hover:scale-105 transition-transform">
+                                         <img src={ASSETS.line_button} className="w-auto h-16 md:h-20" alt={EXPERT_CONFIG.ctaButtonText} />
+                                     </a>
+                                     <p className="mt-3 text-sm text-slate-500 font-bold">{EXPERT_CONFIG.ctaButtonSubText}</p>
+                                 </div>
+
+                                 {/* Social Links (Web Version - Added below CTA) */}
+                                 <div className={`text-center mt-8 pt-6 border-t border-slate-700/50 transition-all duration-700 flex justify-center space-x-6 ${!isUnlocked ? 'filter blur-md select-none opacity-40' : ''}`}>
+                                     <a href={SOCIAL_URLS.instagram} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 hover:scale-105 transition-all">
+                                         <img src={ASSETS.icon_ig} className="w-8 h-8 md:w-10 md:h-10" alt="Instagram" />
+                                     </a>
+                                     <a href={SOCIAL_URLS.threads} target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 hover:scale-105 transition-all">
+                                         <img src={ASSETS.icon_threads} className="w-8 h-8 md:w-10 md:h-10" alt="Threads" />
+                                     </a>
+                                 </div>
+
+                                 {/* Unlock Form Overlay - Positioned absolutely OVER the blurred text area */}
+                                 {!isUnlocked && (
+                                    // 修正：增加 pt-32 md:pt-48 讓表單往下移，露出上方的文字
+                                    <div className="absolute inset-0 z-20 flex items-start justify-center pt-32 md:pt-48 px-2 md:px-0">
+                                         <div className="bg-white/95 backdrop-blur-sm p-8 md:p-10 rounded-[2.5rem] shadow-2xl border-2 border-slate-100 max-w-lg w-full animate-pop-in space-y-6">
+                                             <div className="text-center space-y-3">
+                                                 <div className="text-5xl animate-bounce mb-2">🔐</div>
+                                                 <h3 className="text-2xl md:text-3xl font-black text-[#0f172a]">解鎖完整行動建議</h3>
+                                                 <p className="text-slate-500 font-bold leading-relaxed">
+                                                     想知道如何突破現狀？<br/>輸入稱呼與 Email，立即解鎖教練的深度分析與<span className="text-[#0f172a]">「3天形象急救計畫」</span>。
+                                                 </p>
+                                             </div>
+                                             
+                                             <form onSubmit={handleUnlockSubmit} className="space-y-4">
+                                                  <input type="text" placeholder="您的稱呼" required value={userData.name} onChange={(e) => setUserData({...userData, name: e.target.value})} className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-[#0f172a] focus:ring-0 outline-none transition-all font-bold text-[#0f172a] placeholder:text-slate-400 text-lg shadow-sm" />
+                                                  <input type="email" placeholder="您的 Email" required value={userData.email} onChange={(e) => setUserData({...userData, email: e.target.value})} className="w-full p-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-[#0f172a] focus:ring-0 outline-none transition-all font-bold text-[#0f172a] placeholder:text-slate-400 text-lg shadow-sm" />
+                                                  <button type="submit" disabled={isFormSubmitting} className={`w-full relative overflow-hidden bg-[#0f172a] hover:bg-black text-white font-black py-5 rounded-2xl text-xl shadow-xl transition transform active:scale-95 text-center flex items-center justify-center ${isFormSubmitting ? 'cursor-wait opacity-80' : ''}`}>
+                                                    {isFormSubmitting ? (
+                                                        <span>處理中...</span>
+                                                    ) : (
+                                                        <span>立即解鎖並看結果 👉</span>
+                                                    )}
+                                                  </button>
+                                             </form>
+                                             <p className="text-center text-xs text-slate-400 font-medium">我們承諾保護您的隱私，絕不發送垃圾郵件。</p>
+                                         </div>
+                                    </div>
+                                 )}
+                             </div>
+                         </div>
                     </div>
 
-                    <div className="space-y-8">
-                        {EXPERT_CONFIG.description.split('\n\n').map((paragraph, index) => (
-                            <p key={index} className="text-xl md:text-2xl leading-relaxed font-medium text-white text-justify">
-                                {renderFormattedText(paragraph, 'text-amber-400')}
-                            </p>
-                        ))}
-                    </div>
-
-                    </div>
-                    <button onClick={() => window.open('https://www.menspalais.com', '_blank')} className="group w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-black py-4 md:py-6 rounded-[2rem] text-2xl md:text-3xl shadow-xl shadow-amber-900/20 flex items-center justify-center space-x-2 md:space-x-3 transition-all transform active:scale-95 mt-4 hover:shadow-2xl hover:-translate-y-1 relative overflow-hidden">
-                       <span className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out skew-x-12"></span>
-                       
-                       <div className="flex flex-col items-center justify-center leading-none py-1">
-                           <span className="text-xl md:text-3xl font-black tracking-tight">{EXPERT_CONFIG.ctaButtonText}</span>
-                           {/* @ts-ignore */}
-                           <span className="text-sm md:text-lg font-bold mt-1 opacity-90">{EXPERT_CONFIG.ctaButtonSubText}</span>
-                       </div>
-
-                       <svg className="w-8 h-8 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
-                    </button>
-                    <p className="text-center text-slate-500 text-white font-bold text-lg">⚠️ 名額有限，優先卡位</p>
                 </div>
+
+            </div>
+            {/* ====== Locked Content Section End ====== */}
+
+            
+            {/* Resend Email Button */}
+            {isUnlocked && (
+                <div className="mb-6 text-center">
+                    <button
+                        onClick={handleRetryEmail}
+                        disabled={emailStatus === 'sending'}
+                        className={`
+                            px-6 py-3 rounded-xl font-bold text-sm md:text-base transition-all 
+                            flex items-center justify-center mx-auto space-x-2 border-2
+                            ${emailStatus === 'sending' 
+                                ? 'bg-slate-100 text-slate-400 border-slate-100 cursor-wait' 
+                                : 'bg-white border-slate-200 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:shadow-md active:scale-95'
+                            }
+                        `}
+                    >
+                        {emailStatus === 'sending' ? (
+                            <>
+                                <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>發送中...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>📩 再次發送診斷報告</span>
+                            </>
+                        )}
+                    </button>
+                    {emailStatus === 'success' && !isFormSubmitting && (
+                        <p className="text-green-600 text-xs font-bold mt-2 animate-fade-in">✓ 報告已寄出，請檢查您的收件匣 (含垃圾郵件)</p>
+                    )}
                 </div>
             )}
-            
-            <div className="text-center pb-8"><button onClick={handleStart} className="text-slate-400 font-black uppercase tracking-widest hover:text-slate-600 transition-colors text-lg">重新進行測試</button></div>
+            <div className="text-center pb-8"><button onClick={handleRestart} className="text-slate-400 font-black uppercase tracking-widest hover:text-slate-600 transition-colors text-lg">重新進行測試</button></div>
           </div>
         </div>
       )}
 
-      <footer className="w-full text-center py-10 text-slate-400 text-sm px-6 border-t border-slate-100 mt-auto space-y-2 bg-slate-50">
+      <footer className="w-full text-center py-10 text-slate-400 text-sm px-6 border-t border-slate-200 mt-auto space-y-2 bg-white">
         <p className="font-bold">© 版權所有 男性形象教練 彭邦典</p>
         <p>本測驗由 AI 輔助生成 ，不涉及任何心理治療或精神診斷，測驗結果僅供參考。</p>
       </footer>

@@ -1,0 +1,478 @@
+{
+  "name": "脫單力分析webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json['姓名'] }}，你的脫單力診斷報告書已送達！",
+        "message": "=<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>形象力診斷報告</title>\n<style>\n  body, table, td, div { \n    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; \n    -webkit-text-size-adjust: none;\n    line-height: 1.6;\n    color: #000000;\n  }\n  img { \n    max-width: 100%; \n    height: auto; \n    display: block; \n  }\n  a { text-decoration: none; }\n  [data-ogsc] .white-bg { background-color: #ffffff !important; }\n  [data-ogsc] .dark-text { color: #000000 !important; }\n</style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f1f5f9;\">\n  \n  <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" role=\"presentation\" style=\"background-color: #f1f5f9;\">\n    <tr>\n      <td align=\"center\" style=\"padding: 20px 0 50px 0;\">\n        \n        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" role=\"presentation\" style=\"max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;\">\n          \n          <!-- 1. Persona Image -->\n          <tr>\n             <td bgcolor=\"#0f172a\" style=\"padding: 0; background-color: #0f172a;\">\n                <img src=\"{{ $('Webhook Trigger').item.json.body.quiz_result.persona_image_png }}\" alt=\"Persona\" style=\"width: 100%; height: auto; border: 0;\" />\n             </td>\n          </tr>\n          \n          <!-- 2. Hero Text -->\n          <tr>\n            <td bgcolor=\"#0f172a\" style=\"background-color: #0f172a; padding: 30px 30px 40px 30px; text-align: left;\">\n                <div style=\"display: inline-block; background-color: #2563eb; color: #ffffff; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; margin-bottom: 12px;\">Persona Analysis</div>\n                <h1 style=\"color: #ffffff; margin: 0 0 10px 0; font-size: 36px; font-weight: 900; line-height: 1.1;\">{{ $('Webhook Trigger').item.json.body.quiz_result.persona_title }}</h1>\n                <p style=\"color: #edae26; margin: 0; font-size: 18px; font-weight: 500; font-style: italic;\">\n                   {{ $('Webhook Trigger').item.json.body.ai_analysis.overview }}\n                </p>\n            </td>\n          </tr>\n\n          <!-- 3. Content Section -->\n          <tr>\n             <td bgcolor=\"#ffffff\" class=\"white-bg\" style=\"background-color: #ffffff; padding: 40px 30px;\">\n                \n                <!-- Tags -->\n                <div style=\"margin-bottom: 30px;\">\n                   {{ $('Webhook Trigger').item.json.body.quiz_result.tags_html }}\n                </div>\n\n                <!-- 診斷報告文字區 -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 40px; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;\">\n                   <tr>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 25px; background-color: #f8fafc;\">\n                        <h2 style=\"color: #edae26; margin: 0 0 15px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;\">人格診斷報告</h2>\n                        <div class=\"dark-text\" style=\"color: #1e293b; font-size: 16px; margin: 0; font-weight: bold; line-height: 1.8;\">\n                            {{ $('Webhook Trigger').item.json.body.ai_analysis.explanation }}\n                        </div>\n                      </td>\n                   </tr>\n                </table>\n\n                <!-- 雷達圖區 (新增總分顯示) -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 40px; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;\">\n                   <tr>\n                      <td bgcolor=\"#ffffff\" style=\"padding: 40px 20px 10px 20px; text-align: center; background-color: #ffffff;\">\n                         <!-- 這裡新增了總分顯示 -->\n                         <div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 32px; font-weight: 900; color: #0f172a; line-height: 1.2;\">\n                            總體魅力：<br><span style=\"color: #edae26;\">{{ $('Webhook Trigger').item.json.body.total_score }}</span> <span style=\"color: #cbd5e1; font-size: 20px;\">/ 100</span>\n                         </div>\n                      </td>\n                   </tr>\n                   <tr>\n                      <td bgcolor=\"#ffffff\" style=\"padding: 0 0 30px 0; text-align: center; background-color: #ffffff;\">\n                        <img src=\"{{ $('Webhook Trigger').item.json.body.quiz_result.chart_image_url }}\" alt=\"Chart\" style=\"width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto;\" />\n                      </td>\n                   </tr>\n                </table>\n\n                <h3 class=\"dark-text\" style=\"text-align: center; font-size: 24px; font-weight: 900; color: #0f172a; margin: 0 0 30px 0;\">四大支柱深度剖析</h3>\n\n                <!-- Skin Card -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">🧴 面容氣色</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_skin }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <!-- Hair Card -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">💇‍♂️ 髮型駕馭</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_hair }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <!-- Style Card -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">👔 穿搭策略</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_style }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <!-- Social Card -->\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">📸 社群形象</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_social }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n             </td>\n          </tr>\n\n          <!-- 4. Coach Summary -->\n          <tr>\n              <td bgcolor=\"#0f172a\" style=\"background-color: #0f172a; color: #e2e8f0; padding: 0;\">\n                  <img src=\"{{ $('Webhook Trigger').item.json.body.sales_copy.expert_image }}\" alt=\"Coach\" style=\"width: 100%; display: block;\" />\n                  \n                  <div style=\"padding: 40px 30px; background-color: #0f172a;\">\n                      <h3 style=\"color: #edae26; font-size: 24px; font-weight: 900; margin: 0 0 20px 0;\">💡 教練總結</h3>\n                      <div style=\"color: #e2e8f0; font-size: 16px; margin-bottom: 20px; text-align: justify; font-weight: 500; line-height: 1.8;\">\n                          {{ $('Webhook Trigger').item.json.body.ai_analysis.coach_summary }}\n                      </div>\n                      \n                      <!-- Your Next Step Separator -->\n                      <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin: 40px 0;\">\n                        <tr>\n                            <td width=\"30%\" align=\"right\" valign=\"middle\"><div style=\"height: 1px; background-color: #334155; width: 100%;\"></div></td>\n                            <td width=\"40%\" align=\"center\" valign=\"middle\" style=\"padding: 0 5px;\">\n                                <span style=\"display: inline-block; color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(255,255,255,0.05); white-space: nowrap;\">Your Next Step</span>\n                            </td>\n                            <td width=\"30%\" align=\"left\" valign=\"middle\"><div style=\"height: 1px; background-color: #334155; width: 100%;\"></div></td>\n                        </tr>\n                      </table>\n                      \n                      <!-- Step 1 & Step 2 Content -->\n                      <div style=\"margin-bottom: 30px;\">\n                         {{ $('Webhook Trigger').item.json.body.sales_copy.sales_intro_html }}\n                      </div>\n\n                      <!-- Feature Cards -->\n                      <div style=\"margin-bottom: 30px;\">\n                          {{ $('Webhook Trigger').item.json.body.sales_copy.feature_cards_html }}\n                      </div>\n\n                      <!-- Closing Text -->\n                       <div style=\"color: #e2e8f0; font-size: 16px; margin-bottom: 20px; text-align: justify; font-weight: 500; line-height: 1.8;\">\n                          {{ $('Webhook Trigger').item.json.body.sales_copy.expert_desc_html }}\n                      </div>\n\n                       <a href=\"https://www.menspalais.com\" style=\"display: block; width: 100%; background-color: #edae26; color: #0f172a; text-align: center; padding: 20px 0; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 900; margin-top: 30px; box-shadow: 0 10px 15px -3px rgba(237, 174, 38, 0.3); border-bottom: 4px solid #b48218;\">\n                          查看 5 週變身計畫\n                      </a>\n                      \n                      <p style=\"text-align: center; color: #edae26; margin-top: 24px; font-size: 13px; font-weight: bold; letter-spacing: 0.5px;\">⚠️ 名額有限，優先卡位</p>\n                  </div>\n              </td>\n          </tr>\n          \n          <!-- Footer -->\n          <tr>\n            <td bgcolor=\"#ffffff\" style=\"background-color: #ffffff; padding: 30px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #f1f5f9;\">\n              <p style=\"margin: 0; font-weight: bold;\">© 版權所有 男性形象教練 彭邦典</p>\n            </td>\n          </tr>\n\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        608,
+        -272
+      ],
+      "id": "be4ecc8b-ee50-4e01-8ff2-f93cdfe9f116",
+      "name": "Send Gmail 1.0",
+      "webhookId": "4980efaa-c02a-4b18-ae2a-fbe8de59c239",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BlKQOZV6ZdCAOeHM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json['姓名'] }}，你的脫單力診斷報告書已送達！",
+        "message": "=<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>形象力診斷報告</title>\n<style>\n  body, table, td, div { \n    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; \n    -webkit-text-size-adjust: none;\n    line-height: 1.6;\n    color: #000000;\n  }\n  img { \n    max-width: 100%; \n    height: auto; \n    display: block; \n  }\n  a { text-decoration: none; }\n  [data-ogsc] .white-bg { background-color: #ffffff !important; }\n  [data-ogsc] .dark-text { color: #000000 !important; }\n</style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f1f5f9;\">\n  \n  <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" role=\"presentation\" style=\"background-color: #f1f5f9;\">\n    <tr>\n      <td align=\"center\" style=\"padding: 20px 0 50px 0;\">\n        \n        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" role=\"presentation\" style=\"max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;\">\n          \n          <tr>\n             <td bgcolor=\"#0f172a\" style=\"padding: 0; background-color: #0f172a;\">\n                <img src=\"{{ $('Webhook Trigger').item.json.body.quiz_result.persona_image_png }}\" alt=\"Persona\" style=\"width: 100%; height: auto; border: 0;\" />\n             </td>\n          </tr>\n          \n          <tr>\n            <td bgcolor=\"#0f172a\" style=\"background-color: #0f172a; padding: 30px 30px 40px 30px; text-align: left;\">\n                <div style=\"display: inline-block; background-color: #2563eb; color: #ffffff; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; margin-bottom: 12px;\">Persona Analysis</div>\n                <h1 style=\"color: #ffffff; margin: 0 0 10px 0; font-size: 36px; font-weight: 900; line-height: 1.1;\">{{ $('Webhook Trigger').item.json.body.quiz_result.persona_title }}</h1>\n                <p style=\"color: #edae26; margin: 0; font-size: 18px; font-weight: 500; font-style: italic;\">\n                   {{ $('Webhook Trigger').item.json.body.ai_analysis.overview }}\n                </p>\n            </td>\n          </tr>\n\n          <tr>\n             <td bgcolor=\"#ffffff\" class=\"white-bg\" style=\"background-color: #ffffff; padding: 40px 30px;\">\n                \n                <div style=\"margin-bottom: 30px;\">\n                   {{ $('Webhook Trigger').item.json.body.quiz_result.tags_html }}\n                </div>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 40px; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;\">\n                   <tr>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 25px; background-color: #f8fafc;\">\n                        <h2 style=\"color: #edae26; margin: 0 0 15px 0; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; font-weight: 900;\">人格診斷報告</h2>\n                        <div class=\"dark-text\" style=\"color: #1e293b; font-size: 16px; margin: 0; font-weight: bold; line-height: 1.8;\">\n                            {{ $('Webhook Trigger').item.json.body.ai_analysis.explanation }}\n                        </div>\n                      </td>\n                   </tr>\n                </table>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 40px; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;\">\n                   <tr>\n                      <td bgcolor=\"#ffffff\" style=\"padding: 40px 20px 10px 20px; text-align: center; background-color: #ffffff;\">\n                         <div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 32px; font-weight: 900; color: #0f172a; line-height: 1.2;\">\n                            總體魅力：<br><span style=\"color: #edae26;\">{{ $('Webhook Trigger').item.json.body.total_score }}</span> <span style=\"color: #cbd5e1; font-size: 20px;\">/ 100</span>\n                         </div>\n                      </td>\n                   </tr>\n                   <tr>\n                      <td bgcolor=\"#ffffff\" style=\"padding: 0 0 30px 0; text-align: center; background-color: #ffffff;\">\n                        <img src=\"{{ $('Webhook Trigger').item.json.body.quiz_result.chart_image_url }}\" alt=\"Chart\" style=\"width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto;\" />\n                      </td>\n                   </tr>\n                </table>\n\n                <h3 class=\"dark-text\" style=\"text-align: center; font-size: 24px; font-weight: 900; color: #0f172a; margin: 0 0 30px 0;\">四大支柱深度剖析</h3>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">🧴 面容氣色</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.skin.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_skin }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">💇‍♂️ 髮型駕馭</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.hair.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_hair }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">👔 穿搭策略</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.style.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_style }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n                <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;\">\n                   <tr>\n                      <td width=\"8\" bgcolor=\"{{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.color }}\" style=\"width: 8px;\"></td>\n                      <td bgcolor=\"#f8fafc\" style=\"padding: 20px; background-color: #f8fafc;\">\n                        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                            <tr>\n                                <td style=\"padding-bottom: 10px;\">\n                                    <h4 style=\"font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; display: inline-block;\">📸 社群形象</h4>\n                                </td>\n                                <td align=\"right\" style=\"padding-bottom: 10px;\">\n                                    <span style=\"background-color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.bg_color }}; color: {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.text_color }}; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: bold;\">\n                                        {{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.level }} ({{ $('Webhook Trigger').item.json.body.quiz_result.scores.social.score }}/15)\n                                    </span>\n                                </td>\n                            </tr>\n                        </table>\n                        <p style=\"color: #1e293b; margin: 0; font-size: 15px; font-weight: 500;\">{{ $('Webhook Trigger').item.json.body.ai_analysis.advice_social }}</p>\n                      </td>\n                   </tr>\n                </table>\n\n             </td>\n          </tr>\n\n          <tr>\n              <td bgcolor=\"#0f172a\" style=\"background-color: #0f172a; color: #e2e8f0; padding: 0;\">\n                  <img src=\"{{ $('Webhook Trigger').item.json.body.sales_copy.expert_image }}\" alt=\"Coach\" style=\"width: 100%; display: block;\" />\n                  \n                  <div style=\"padding: 40px 30px; background-color: #0f172a;\">\n                      <h3 style=\"color: #edae26; font-size: 24px; font-weight: 900; margin: 0 0 20px 0;\">💡 教練總結</h3>\n                      <div style=\"color: #e2e8f0; font-size: 16px; margin-bottom: 30px; text-align: justify; font-weight: 500; line-height: 1.8;\">\n                          {{ $('Webhook Trigger').item.json.body.ai_analysis.coach_summary }}\n                      </div>\n                      \n                      <div style=\"background-color: #1e293b; border: 2px solid #edae26; border-radius: 20px; padding: 25px; margin-bottom: 40px;\">\n                          <h4 style=\"color: #edae26; margin: 0 0 10px 0; font-size: 20px; font-weight: 900; text-align: center;\">⚡️ 專屬你的「形象急救計畫」</h4>\n                          <p style=\"color: #ffffff; font-size: 14px; line-height: 1.6; margin-bottom: 15px; text-align: center;\">\n                              看完報告不知道從哪開始？我為 {{ $('Webhook Trigger').item.json.body.quiz_result.persona_title }} 整理了這套：\n                          </p>\n                          <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n                              <tr><td style=\"color: #e2e8f0; font-size: 14px; padding: 5px 0;\">✅ <b>理工男必備</b>：3 套萬用約會穿搭公式</td></tr>\n                              <tr><td style=\"color: #e2e8f0; font-size: 14px; padding: 5px 0;\">✅ <b>社群起死回生</b>：高配對率頭貼拍攝指南</td></tr>\n                              <tr><td style=\"color: #e2e8f0; font-size: 14px; padding: 5px 0;\">✅ <b>精準止損</b>：髮型師溝通術，不再剪壞頭髮</td></tr>\n                          </table>\n                          <a href=\"你的低價產品銷售網址\" style=\"display: block; background-color: #ffffff; color: #0f172a; text-align: center; padding: 15px 0; border-radius: 12px; text-decoration: none; font-size: 18px; font-weight: 900; margin-top: 20px; box-shadow: 0 4px 10px rgba(255,255,255,0.1);\">\n                              立即獲取急救包 (體驗價 $490)\n                          </a>\n                      </div>\n\n                      <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"margin: 40px 0;\">\n                        <tr>\n                            <td width=\"20%\" align=\"right\" valign=\"middle\"><div style=\"height: 1px; background-color: #334155; width: 100%;\"></div></td>\n                            <td width=\"60%\" align=\"center\" valign=\"middle\" style=\"padding: 0 10px;\">\n                                <span style=\"display: inline-block; color: #edae26; font-size: 11px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(237, 174, 38, 0.3); padding: 6px 12px; border-radius: 99px; background-color: rgba(255,255,255,0.05); white-space: nowrap;\">進階系統化改造計畫</span>\n                            </td>\n                            <td width=\"20%\" align=\"left\" valign=\"middle\"><div style=\"height: 1px; background-color: #334155; width: 100%;\"></div></td>\n                        </tr>\n                      </table>\n                      \n                      <div style=\"margin-bottom: 30px;\">\n                         {{ $('Webhook Trigger').item.json.body.sales_copy.sales_intro_html }}\n                      </div>\n\n                      <div style=\"margin-bottom: 30px;\">\n                          {{ $('Webhook Trigger').item.json.body.sales_copy.feature_cards_html }}\n                      </div>\n\n                      <div style=\"color: #e2e8f0; font-size: 16px; margin-bottom: 20px; text-align: justify; font-weight: 500; line-height: 1.8;\">\n                          {{ $('Webhook Trigger').item.json.body.sales_copy.expert_desc_html }}\n                      </div>\n\n                       <a href=\"https://www.menspalais.com\" style=\"display: block; width: 100%; background-color: #edae26; color: #0f172a; text-align: center; padding: 20px 0; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 900; margin-top: 30px; box-shadow: 0 10px 15px -3px rgba(237, 174, 38, 0.3); border-bottom: 4px solid #b48218;\">\n                          查看 5 週變身計畫\n                      </a>\n                      \n                      <p style=\"text-align: center; color: #edae26; margin-top: 24px; font-size: 13px; font-weight: bold; letter-spacing: 0.5px;\">⚠️ 名額有限，優先卡位</p>\n                  </div>\n              </td>\n          </tr>\n          \n          <tr>\n            <td bgcolor=\"#ffffff\" style=\"background-color: #ffffff; padding: 30px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #f1f5f9;\">\n              <p style=\"margin: 0; font-weight: bold;\">© 版權所有 男性形象教練 彭邦典</p>\n            </td>\n          </tr>\n\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        848,
+        -272
+      ],
+      "id": "b39df501-4bd5-41bb-af46-31672f358342",
+      "name": "Send Gmail 2.0",
+      "webhookId": "4980efaa-c02a-4b18-ae2a-fbe8de59c239",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BlKQOZV6ZdCAOeHM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "charming-test",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        544,
+        224
+      ],
+      "id": "d1de768c-7f78-467d-bd25-2b30facd85ba",
+      "name": "Webhook Trigger",
+      "webhookId": "77024e6c-4750-4901-acb9-cba478739e51"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU",
+          "mode": "list",
+          "cachedResultName": "脫單力分析n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "工作表1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "提交時間": "={{ $json.body.submittedAt }}",
+            "姓名": "={{ $json.body.name }}",
+            "Email": "={{ $json.body.email }}",
+            "總分": "={{ $json.body.total_score }}",
+            "人格原型": "={{ $json.body.quiz_result.persona_title }}",
+            "形象外表": "={{ $json.body.ai_analysis.advice_skin }}",
+            "社群形象": "={{ $json.body.ai_analysis.advice_social }}",
+            "行動與互動": "={{ $json.body.ai_analysis.advice_hair }}",
+            "心態與習慣": "={{ $json.body.ai_analysis.advice_style }}",
+            "AI完整建議": "={{ $json.body.ai_analysis.coach_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "提交時間",
+              "displayName": "提交時間",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "姓名",
+              "displayName": "姓名",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "總分",
+              "displayName": "總分",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "人格原型",
+              "displayName": "人格原型",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "形象外表",
+              "displayName": "形象外表",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "社群形象",
+              "displayName": "社群形象",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "行動與互動",
+              "displayName": "行動與互動",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "心態與習慣",
+              "displayName": "心態與習慣",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI完整建議",
+              "displayName": "AI完整建議",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        816,
+        224
+      ],
+      "id": "a344f8e9-4d5f-4f41-bcdb-8cf1cf4e4315",
+      "name": "Append to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "N0VYOjOQlO3jfF77",
+          "name": "n8n google sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook Trigger').first().json.body.email }}",
+        "subject": "={{ $('Webhook Trigger').first().json.body.name }}，你的脫單力診斷報告書已送達！",
+        "message": "=<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<meta name=\"x-apple-disable-message-reformatting\">\n<title>脫單力診斷報告</title>\n<style>\n  /* Reset & Base Styles */\n  body { \n      margin: 0; padding: 0; \n      -webkit-text-size-adjust: 100%; \n      -ms-text-size-adjust: 100%; \n      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; \n      line-height: 1.6; \n      color: #334155;\n      width: 100% !important;\n      word-break: break-word !important;\n  }\n  img { max-width: 100%; height: auto; display: block; border: 0; }\n  table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }\n  \n  .dark-bg { background-color: #0f172a; }\n  .gold-text { color: #edae26; }\n  \n  /* Mobile Responsive Styles */\n  @media only screen and (max-width: 600px) {\n      body, .container-table {\n          width: 100% !important;\n          padding: 0 !important;\n          background-color: #ffffff !important;\n      }\n      .main-card {\n          width: 100% !important;\n          max-width: 100% !important;\n          border-radius: 0 !important;\n          box-shadow: none !important;\n          margin: 0 !important;\n      }\n\n      .content-cell {\n          padding-left: 0 !important;\n          padding-right: 0 !important;\n      }\n\n      .standard-card {\n          display: block !important;\n          width: auto !important;\n          margin: 0 5px 15px 5px !important;\n          border-radius: 16px !important;\n          overflow: hidden !important;\n          border: none !important;\n          box-sizing: border-box !important;\n      }\n\n      /* 修正：教練區塊移除底部邊距，準備與頁尾銜接 */\n      .coach-wrap {\n          display: block !important;\n          width: 100% !important;\n          margin: 20px 0 0 0 !important; /* 底部 margin 設為 0 */\n          border-radius: 0 !important;\n          overflow: hidden !important;\n      }\n\n      /* 修正：手機版頁尾強制改為深藍色並滿版 */\n      .footer-cell {\n          background-color: #0f172a !important;\n          padding: 20px 10px 40px 10px !important;\n          border-top: none !important; /* 移除分割線 */\n      }\n\n      .standard-card div, .coach-wrap div {\n          padding-left: 12px !important;\n          padding-right: 12px !important;\n          width: 100% !important;\n          box-sizing: border-box !important;\n      }\n\n      .mobile-pad-standard {\n          padding-left: 10px !important;\n          padding-right: 10px !important;\n      }\n      \n      .persona-header {\n          padding: 30px 10px !important;\n      }\n\n      h1 { font-size: 26px !important; }\n      h3 { font-size: 22px !important; }\n  }\n</style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f1f5f9;\">\n  <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"background-color: #f1f5f9; padding: 20px 0;\" class=\"container-table\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" class=\"main-card\" style=\"max-width: 600px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; margin: 0 auto;\">\n          \n          <tr>\n             <td class=\"dark-bg\" style=\"padding: 0;\">\n                <img src=\"{{ $('Webhook Trigger').first().json.body.quiz_result.persona_image_png }}\" style=\"width: 100%;\" />\n             </td>\n          </tr>\n\n          <tr>\n            <td class=\"dark-bg persona-header\" style=\"padding: 35px 30px; text-align: left;\">\n                <h1 style=\"color: #ffffff; margin: 0; font-size: 32px; font-weight: 900;\">{{ $('Webhook Trigger').first().json.body.quiz_result.persona_title }}</h1>\n                <p class=\"gold-text\" style=\"margin: 10px 0 0 0; font-size: 18px; font-style: italic;\">{{ $('Webhook Trigger').first().json.body.ai_analysis.overview }}</p>\n            </td>\n          </tr>\n\n          <tr>\n             <td style=\"padding: 30px 0 0 0;\" class=\"content-cell\"> <div class=\"mobile-pad-standard\">\n                    <div style=\"margin-bottom: 25px;\">\n                        {{ $('Webhook Trigger').first().json.body.quiz_result.tags_html }}\n                    </div>\n                    \n                    <div style=\"text-align: center; margin-bottom: 35px;\">\n                        <div style=\"font-size: 28px; font-weight: 900; color: #0f172a;\">總體魅力：<span class=\"gold-text\">{{ $('Webhook Trigger').first().json.body.total_score }}</span> <span style=\"color: #cbd5e1; font-size: 18px;\">/ 100</span></div>\n                        <img src=\"{{ $('Webhook Trigger').first().json.body.quiz_result.chart_image_url }}\" style=\"max-width: 450px; margin: 25px auto; width: 100%;\" />\n                    </div>\n                </div>\n\n                <div class=\"standard-card\">\n                    <div style=\"background-color: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 20px;\">\n                       <h2 style=\"color: #edae26; margin: 0 0 15px 0; font-size: 14px; letter-spacing: 2px; font-weight: 900; text-transform: uppercase;\">核心診斷報告</h2>\n                       <div style=\"font-size: 16px; font-weight: bold; line-height: 1.8; color: #334155;\">\n                           {{ $('Webhook Trigger').first().json.body.ai_analysis.explanation }}    \n                       </div>\n                    </div>\n                </div>\n\n                <div class=\"mobile-pad-standard\" style=\"text-align: center; margin: 30px 0 20px 0;\">\n                    <h3 style=\"font-size: 24px; font-weight: 900; color: #0f172a; margin: 0;\">四大屬性深度剖析</h3>\n                </div>\n\n                <div class=\"standard-card\">\n{{ $('Webhook Trigger').item.json.body.html_components.dimensions_grid }}\n                </div>\n\n                <div class=\"coach-wrap\">\n{{ $('Webhook Trigger').item.json.body.html_components.coach_section }}\n                </div>\n             </td>\n          </tr>\n\n          <tr>\n            <td class=\"footer-cell\" style=\"background-color: #0f172a; padding: 10px 10px 10px 10px; text-align: center; font-size: 12px; color: #94a3b8;\">\n              <p style=\"margin: 15px 0 0 0; font-weight: bold; color: #ffffff; letter-spacing: 1px;\">© 男性形象教練 彭邦典</p>\n            </td>\n          </tr>\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1072,
+        224
+      ],
+      "id": "c3ca34b5-7aa7-4597-95e5-f164d04210df",
+      "name": "Send Gmail",
+      "webhookId": "4980efaa-c02a-4b18-ae2a-fbe8de59c239",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BlKQOZV6ZdCAOeHM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.systeme.io/api/contacts?email={{ $('Webhook Trigger').first().json.body.email }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1280,
+        224
+      ],
+      "id": "d7ca9dcb-0ccb-4362-b6a8-7ff94c0bccfe",
+      "name": "Systeme_Search"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.systeme.io/api/contacts/{{ $node[\"Systeme_Search\"].json.items[0].id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/merge-patch+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"custom_fields\": [\n    {\n      \"name\": \"persona_type\", \n      \"value\": \"{{ $('Webhook Trigger').first().json.body.quiz_result.persona_title }}\"\n    },\n    {\n      \"name\": \"ai_analysis_report\", \n      \"value\": {{ JSON.stringify($('Webhook Trigger').first().json.body.ai_analysis.explanation) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        224
+      ],
+      "id": "810fb65b-8831-4fdf-9d28-3f25ffee86ef",
+      "name": "HTTP Request (更新資料)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.systeme.io/api/contacts/{{ $node[\"Systeme_Search\"].json.items[0].id }}/tags",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tagId\": 1633731\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1696,
+        208
+      ],
+      "id": "5b8d089f-8e2c-4c3e-aea1-f8a447f21509",
+      "name": "Systeme_Add_Tag"
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "body": {
+            "submittedAt": "2024-02-18T12:00:00.000Z",
+            "name": "測試人員",
+            "email": "freeven0118@gmail.com",
+            "total_score": 85,
+            "quiz_result": {
+              "persona_title": "天生魅力家",
+              "persona_image_png": "https://images.weserv.nl/?url=d1yei2z3i6k35z.cloudfront.net/2452254/694c9b7411b38_1.%E5%A4%A9%E7%94%9F%E9%AD%85%E5%8A%9B%E5%AE%B6.svg&output=png",
+              "chart_image_url": "https://quickchart.io/chart?c=%7B%22type%22%3A%22radar%22%2C%22data%22%3A%7B%22labels%22%3A%5B%22%E5%BD%A2%E8%B1%A1%E5%A4%96%E8%A1%A8%22%2C%22%E7%A4%BE%E7%BE%A4%E5%BD%A2%E8%B1%A1%22%2C%22%E8%A1%8C%E5%8B%95%E8%88%87%E4%BA%92%E5%8B%95%22%2C%22%E5%BF%83%E6%85%8B%E8%88%87%E7%BF%92%E6%85%A3%22%5D%2C%22datasets%22%3A%5B%7B%22label%22%3A%22%E9%AD%85%E5%8A%9B%E5%80%BC%22%2C%22data%22%3A%5B12%2C9%2C6%2C3%5D%2C%22backgroundColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%200.2)%22%2C%22borderColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%201)%22%2C%22pointBackgroundColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%201)%22%2C%22borderWidth%22%3A2%7D%5D%7D%2C%22options%22%3A%7B%22scale%22%3A%7B%22ticks%22%3A%7B%22beginAtZero%22%3Atrue%2C%22max%22%3A12%2C%22stepSize%22%3A3%2C%22display%22%3Afalse%7D%2C%22pointLabels%22%3A%7B%22fontSize%22%3A20%2C%22fontStyle%22%3A%22bold%22%2C%22fontColor%22%3A%22%230f172a%22%7D%2C%22gridLines%22%3A%7B%22color%22%3A%22%23cbd5e1%22%7D%7D%2C%22legend%22%3A%7B%22display%22%3Afalse%7D%7D%7D&w=500&h=400&bkg=white",
+              "tags_html": "<span>#高質感</span> <span>#社交達人</span>",
+              "scores": {
+                "skin": {
+                  "level": "綠燈",
+                  "score": 12,
+                  "color": "#22c55e",
+                  "bg_color": "#dcfce7",
+                  "text_color": "#15803d"
+                },
+                "social": {
+                  "level": "黃燈",
+                  "score": 9,
+                  "color": "#f97316",
+                  "bg_color": "#ffedd5",
+                  "text_color": "#c2410c"
+                },
+                "hair": {
+                  "level": "黃燈",
+                  "score": 6,
+                  "color": "#f97316",
+                  "bg_color": "#ffedd5",
+                  "text_color": "#c2410c"
+                },
+                "style": {
+                  "level": "紅燈",
+                  "score": 3,
+                  "color": "#ef4444",
+                  "bg_color": "#fef2f2",
+                  "text_color": "#b91c1c"
+                }
+              }
+            },
+            "ai_analysis": {
+              "overview": "外在與內在的完美平衡者",
+              "explanation": "這是核心診斷報告的模擬內容...",
+              "advice_skin": "保持現狀，您的皮膚管理很好。",
+              "advice_social": "嘗試更多元的生活照片。",
+              "advice_hair": "可以嘗試主動發起邀約。",
+              "advice_style": "面對挫折時請保持平常心。",
+              "coach_summary": "你目前的盲點在於試圖用『誠意』去彌補『吸引力』的空缺。請記住，<span style=\"color:#edae26; font-weight:bold;\">「形象建立」</span>是你目前最強力的槓桿。"
+            },
+            "sales_copy": {
+              "expert_image": "https://d1yei2z3i6k35z.cloudfront.net/2452254/693980ce9054d_mobile2withsign.jpg",
+              "sales_intro_html": "<h4 style=\"text-align: center; color: #ffffff;\">從「知道」到「做到」</h4>",
+              "feature_cards_html": "<div>feature cards placeholder</div>",
+              "expert_desc_html": "<div>expert desc placeholder</div>"
+            },
+            "html_components": {
+              "dimensions_grid": "<div style=\"background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 25px; margin-bottom: 20px;\"><h4>形象外表</h4><p>這是前端生成的模擬 HTML 區塊 (四大屬性)。</p></div>",
+              "coach_section": "<div style=\"background-color: #0f172a; border-radius: 24px; padding: 40px 30px;\"><h3 style=\"color: #edae26;\">教練總結</h3><p style=\"color: white;\">這是前端生成的深色區塊模擬 HTML。</p></div>"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail": {
+      "main": [
+        [
+          {
+            "node": "Systeme_Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Systeme_Search": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (更新資料)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (更新資料)": {
+      "main": [
+        [
+          {
+            "node": "Systeme_Add_Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "8c785da0-ccde-4cae-9547-dbcb16f08268",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "402d100cab6eba4d0576982c46bb6be2efb78c36aa1e5629cb6c383e49843cb0"
+  },
+  "id": "HdUi74eCEanpdhN5",
+  "tags": []
+}

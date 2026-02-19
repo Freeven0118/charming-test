@@ -1,0 +1,433 @@
+
+{
+  "name": "脫單力分析webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "charming-test",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        16
+      ],
+      "id": "84b3c8a6-4ee7-4c1c-9c5e-161972ef5b6d",
+      "name": "Webhook Trigger",
+      "webhookId": "77024e6c-4750-4901-acb9-cba478739e51"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU",
+          "mode": "list",
+          "cachedResultName": "脫單力分析n8n",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "工作表1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1iosEzD46jlOAEXW29tTdtBo9SMixnkAK6YrTQa_mWHU/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "提交時間": "={{ $json.body.submittedAt }}",
+            "姓名": "={{ $json.body.name }}",
+            "Email": "={{ $json.body.email }}",
+            "總分": "={{ $json.body.total_score }}",
+            "人格原型": "={{ $json.body.quiz_result.persona_title }}",
+            "形象外表": "={{ $json.body.ai_analysis.advice_skin }}",
+            "社群形象": "={{ $json.body.ai_analysis.advice_social }}",
+            "行動與互動": "={{ $json.body.ai_analysis.advice_hair }}",
+            "心態與習慣": "={{ $json.body.ai_analysis.advice_style }}",
+            "AI完整建議": "={{ $json.body.ai_analysis.coach_summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "提交時間",
+              "displayName": "提交時間",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "姓名",
+              "displayName": "姓名",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "總分",
+              "displayName": "總分",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "人格原型",
+              "displayName": "人格原型",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "形象外表",
+              "displayName": "形象外表",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "社群形象",
+              "displayName": "社群形象",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "行動與互動",
+              "displayName": "行動與互動",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "心態與習慣",
+              "displayName": "心態與習慣",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI完整建議",
+              "displayName": "AI完整建議",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        16
+      ],
+      "id": "d5c8648c-c111-473c-81fc-c6909b3fe9d7",
+      "name": "Append to Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "N0VYOjOQlO3jfF77",
+          "name": "n8n google sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook Trigger').first().json.body.email }}",
+        "subject": "={{ $('Webhook Trigger').first().json.body.name }}，你的脫單力診斷報告書已送達！",
+        "message": "=\n<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<meta name=\"x-apple-disable-message-reformatting\">\n<title>脫單力診斷報告</title>\n<style>\n  /* Reset & Base */\n  body { \n      margin: 0; padding: 0; \n      -webkit-text-size-adjust: 100%; \n      -ms-text-size-adjust: 100%; \n      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; \n      line-height: 1.6; \n      color: #334155;\n      width: 100% !important;\n      word-break: break-word !important; /* 全局強制換行 */\n      overflow-wrap: break-word !important;\n  }\n  img { max-width: 100%; height: auto; display: block; }\n  table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }\n  td, div, p, span { word-break: break-word !important; } /* 針對所有文字容器強制換行 */\n\n  .dark-bg { background-color: #0f172a; }\n  .gold-text { color: #edae26; }\n  \n  /* Mobile Responsive Styles - Full Bleed Strategy */\n  @media only screen and (max-width: 600px) {\n      /* 1. Reset Global Containers to Full Width & White Background */\n      body, .container-table {\n          width: 100% !important;\n          padding: 0 !important;\n          background-color: #ffffff !important;\n      }\n      .main-card {\n          width: 100% !important;\n          max-width: 100% !important;\n          border-radius: 0 !important;\n          box-shadow: none !important;\n          margin: 0 !important;\n      }\n      \n      /* 2. 強制表格佈局固定，防止撐開 */\n      table {\n          table-layout: fixed !important;\n          width: 100% !important;\n      }\n\n      /* 3. Padding for Text Content - 改為 10px */\n      .mobile-pad {\n          padding-left: 10px !important;\n          padding-right: 10px !important;\n      }\n\n      /* 4. Full Bleed Cards with Reduced Padding (Fixes narrow content) */\n      /* 針對 React 傳來的 .dimension-card 強制調整 */\n      .dimension-card {\n          border-radius: 12px !important;\n          margin: 0 0 15px 0 !important;\n          width: 100% !important;\n          padding: 15px !important; /* 減少內距，讓內容變寬 */\n          box-sizing: border-box !important;\n      }\n\n      /* 5. Coach Section Full Bleed with Reduced Padding */\n      .coach-section {\n          border-radius: 12px !important;\n          margin: 20px 0 !important;\n          width: 100% !important;\n      }\n      .coach-content {\n          padding: 20px 15px !important; /* 減少教練區塊內距 */\n      }\n      \n      /* 移除強制圖片100%寬度的設定，避免社群圖標過大 */\n      /* 主要圖片本身已有 inline style 設定 width: 100% */\n  }\n</style>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f1f5f9;\">\n  <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" style=\"background-color: #f1f5f9; padding: 20px 0;\" class=\"container-table\">\n    <tr>\n      <td align=\"center\">\n        <!-- Main Card Container -->\n        <table width=\"100%\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\" class=\"main-card\" style=\"max-width: 600px; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; margin: 0 auto;\">\n          \n          <!-- Header Image (Full Bleed by default) -->\n          <tr>\n             <td class=\"dark-bg\" style=\"padding: 0;\">\n                <img src=\"{{ $('Webhook Trigger').first().json.body.quiz_result.persona_image_png }}\" style=\"width: 100%;\" />\n             </td>\n          </tr>\n\n          <!-- Persona Title (Wrapped for padding) -->\n          <tr>\n            <td class=\"dark-bg persona-title-cell\" style=\"padding: 30px; text-align: left;\">\n                <div class=\"mobile-pad\">\n                    <h1 style=\"color: #ffffff; margin: 0; font-size: 32px; font-weight: 900;\">{{ $('Webhook Trigger').first().json.body.quiz_result.persona_title }}</h1>\n                    <p class=\"gold-text\" style=\"margin: 10px 0 0 0; font-size: 18px; font-style: italic;\">{{ $('Webhook Trigger').first().json.body.ai_analysis.overview }}</p>\n                </div>\n            </td>\n          </tr>\n\n          <!-- Content Body -->\n          <tr>\n             <td style=\"padding: 30px;\" class=\"content-cell\">\n                \n                <!-- Text Content Wrapper -->\n                <div class=\"mobile-pad\">\n                    <!-- Tags -->\n                    <div style=\"margin-bottom: 25px;\">\n                    {{ $('Webhook Trigger').first().json.body.quiz_result.tags_html }}\n                    </div>\n                    \n                    <!-- Radar Chart -->\n                    <div style=\"text-align: center; margin-bottom: 30px;\">\n                        <div style=\"font-size: 28px; font-weight: 900; color: #0f172a;\">總體魅力：<span class=\"gold-text\">{{ $('Webhook Trigger').first().json.body.total_score }}</span> <span style=\"color: #cbd5e1; font-size: 18px;\">/ 100</span></div>\n                        <img src=\"{{ $('Webhook Trigger').first().json.body.quiz_result.chart_image_url }}\" style=\"max-width: 450px; margin: 20px auto; width: 100%;\" />\n                    </div>\n                </div>\n\n                <!-- Core Diagnosis Card -->\n                <div class=\"mobile-pad\">\n                    <div style=\"border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; margin-bottom: 25px; background-color: #f8fafc; padding: 25px;\" class=\"dimension-card\">\n                    <h2 style=\"color: #edae26; margin: 0 0 15px 0; font-size: 14px; letter-spacing: 2px; font-weight: 900; text-transform: uppercase;\">核心診斷報告</h2>\n                    <div style=\"font-size: 16px; font-weight: bold; line-height: 1.8;\">\n                    {{ $('Webhook Trigger').first().json.body.ai_analysis.explanation }}    \n                    </div>\n                    </div>\n                </div>\n\n                <div class=\"mobile-pad\">\n                    <!-- Four Dimensions Title -->\n                    <div style=\"text-align: center; margin-bottom: 20px;\">\n                        <h3 style=\"font-size: 24px; font-weight: 900; color: #0f172a; margin: 0;\">四大屬性深度剖析</h3>\n                    </div>\n                </div>\n\n                <!-- Dimensions Grid (Dynamic) -->\n                <div class=\"mobile-pad\">\n                   {{{ $('Webhook Trigger').first().json.body.html_components.dimensions_grid }}}\n                </div>\n\n                <!-- Coach Section (Dynamic) -->\n                <div class=\"mobile-pad\">\n                    {{{ $('Webhook Trigger').first().json.body.html_components.coach_section }}}\n                </div>\n\n             </td>\n          </tr>\n\n          <!-- Footer -->\n          <tr>\n            <td style=\"background-color: #f8fafc; padding: 25px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;\">\n              <p style=\"margin: 0;\">如果您不想再收到信件，請直接回覆告知取消，我將為您處理。</p>\n              <p style=\"margin: 10px 0 0 0; font-weight: bold;\">© 男性形象教練 彭邦典</p>\n            </td>\n          </tr>\n        </table>\n      </td>\n    </tr>\n  </table>\n  <!-- GMAIL AUTO-SCALING FIX: Invisible spacer to force min-width -->\n  <div style=\"display:none; white-space:nowrap; font:15px courier; line-height:0;\">\n    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; \n    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; \n    &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        16
+      ],
+      "id": "e8dab807-e13c-4bcf-ae4d-312a6addbc95",
+      "name": "Send Gmail",
+      "webhookId": "4980efaa-c02a-4b18-ae2a-fbe8de59c239",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "BlKQOZV6ZdCAOeHM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.systeme.io/api/contacts?email={{ $('Webhook Trigger').first().json.body.email }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        944,
+        16
+      ],
+      "id": "afe1574c-6739-436a-9193-03a0a0d9ca66",
+      "name": "Systeme_Search"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.systeme.io/api/contacts/{{ $node[\"Systeme_Search\"].json.items[0].id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/merge-patch+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"custom_fields\": [\n    {\n      \"name\": \"persona_type\", \n      \"value\": \"{{ $('Webhook Trigger').first().json.body.quiz_result.persona_title }}\"\n    },\n    {\n      \"name\": \"ai_analysis_report\", \n      \"value\": {{ JSON.stringify($('Webhook Trigger').first().json.body.ai_analysis.explanation) }}\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        16
+      ],
+      "id": "61179244-1165-4630-ab5d-498cb40885bc",
+      "name": "HTTP Request (更新資料)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.systeme.io/api/contacts/{{ $node[\"Systeme_Search\"].json.items[0].id }}/tags",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "311xcle8tp3f2aqto4e60sy6d7o927gf41pg3tbbazcjsuprrqi6lcqyip9cpi5j"
+            },
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tagId\": 1633731\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1344,
+        32
+      ],
+      "id": "af669e72-ca05-46c4-bc70-44f0a3e794f6",
+      "name": "Systeme_Add_Tag"
+    }
+  ],
+  "pinData": {
+    "Webhook Trigger": [
+      {
+        "json": {
+          "body": {
+            "submittedAt": "2024-02-18T12:00:00.000Z",
+            "name": "測試人員",
+            "email": "freeven0118@gmail.com",
+            "total_score": 85,
+            "quiz_result": {
+              "persona_title": "天生魅力家",
+              "persona_image_png": "https://images.weserv.nl/?url=d1yei2z3i6k35z.cloudfront.net/2452254/694c9b7411b38_1.%E5%A4%A9%E7%94%9F%E9%AD%85%E5%8A%9B%E5%AE%B6.svg&output=png",
+              "chart_image_url": "https://quickchart.io/chart?c=%7B%22type%22%3A%22radar%22%2C%22data%22%3A%7B%22labels%22%3A%5B%22%E5%BD%A2%E8%B1%A1%E5%A4%96%E8%A1%A8%22%2C%22%E7%A4%BE%E7%BE%A4%E5%BD%A2%E8%B1%A1%22%2C%22%E8%A1%8C%E5%8B%95%E8%88%87%E4%BA%92%E5%8B%95%22%2C%22%E5%BF%83%E6%85%8B%E8%88%87%E7%BF%92%E6%85%A3%22%5D%2C%22datasets%22%3A%5B%7B%22label%22%3A%22%E9%AD%85%E5%8A%9B%E5%80%BC%22%2C%22data%22%3A%5B12%2C9%2C6%2C3%5D%2C%22backgroundColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%200.2)%22%2C%22borderColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%201)%22%2C%22pointBackgroundColor%22%3A%22rgba(37%2C%2099%2C%20235%2C%201)%22%2C%22borderWidth%22%3A2%7D%5D%7D%2C%22options%22%3A%7B%22scale%22%3A%7B%22ticks%22%3A%7B%22beginAtZero%22%3Atrue%2C%22max%22%3A12%2C%22stepSize%22%3A3%2C%22display%22%3Afalse%7D%2C%22pointLabels%22%3A%7B%22fontSize%22%3A20%2C%22fontStyle%22%3A%22bold%22%2C%22fontColor%22%3A%22%230f172a%22%7D%2C%22gridLines%22%3A%7B%22color%22%3A%22%23cbd5e1%22%7D%7D%2C%22legend%22%3A%7B%22display%22%3Afalse%7D%7D%7D&w=500&h=400&bkg=white",
+              "tags_html": "<span>#高質感</span> <span>#社交達人</span>",
+              "scores": {
+                "skin": {
+                  "level": "綠燈",
+                  "score": 12,
+                  "color": "#22c55e",
+                  "bg_color": "#dcfce7",
+                  "text_color": "#15803d"
+                },
+                "social": {
+                  "level": "黃燈",
+                  "score": 9,
+                  "color": "#f97316",
+                  "bg_color": "#ffedd5",
+                  "text_color": "#c2410c"
+                },
+                "hair": {
+                  "level": "黃燈",
+                  "score": 6,
+                  "color": "#f97316",
+                  "bg_color": "#ffedd5",
+                  "text_color": "#c2410c"
+                },
+                "style": {
+                  "level": "紅燈",
+                  "score": 3,
+                  "color": "#ef4444",
+                  "bg_color": "#fef2f2",
+                  "text_color": "#b91c1c"
+                }
+              }
+            },
+            "ai_analysis": {
+              "overview": "外在與內在的完美平衡者",
+              "explanation": "這是核心診斷報告的模擬內容...",
+              "advice_skin": "保持現狀，您的皮膚管理很好。",
+              "advice_social": "嘗試更多元的生活照片。",
+              "advice_hair": "可以嘗試主動發起邀約。",
+              "advice_style": "面對挫折時請保持平常心。",
+              "coach_summary": "你目前的盲點在於試圖用『誠意』去彌補『吸引力』的空缺。請記住，<span style=\"color:#edae26; font-weight:bold;\">「形象建立」</span>是你目前最強力的槓桿。"
+            },
+            "sales_copy": {
+              "expert_image": "https://d1yei2z3i6k35z.cloudfront.net/2452254/693980ce9054d_mobile2withsign.jpg",
+              "sales_intro_html": "<h4 style=\"text-align: center; color: #ffffff;\">從「知道」到「做到」</h4>",
+              "feature_cards_html": "<div>feature cards placeholder</div>",
+              "expert_desc_html": "<div>expert desc placeholder</div>"
+            },
+            "html_components": {
+              "dimensions_grid": "<div style=\"background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 25px; margin-bottom: 20px;\"><h4>形象外表</h4><p>這是前端生成的模擬 HTML 區塊 (四大屬性)。</p></div>",
+              "coach_section": "<div style=\"background-color: #0f172a; border-radius: 24px; padding: 40px 30px;\"><h3 style=\"color: #edae26;\">教練總結</h3><p style=\"color: white;\">這是前端生成的深色區塊模擬 HTML。</p></div>"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail": {
+      "main": [
+        [
+          {
+            "node": "Systeme_Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Systeme_Search": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request (更新資料)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request (更新資料)": {
+      "main": [
+        [
+          {
+            "node": "Systeme_Add_Tag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "b8d15797-bf43-487c-8ca3-07f612271d83",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "402d100cab6eba4d0576982c46bb6be2efb78c36aa1e5629cb6c383e49843cb0"
+  },
+  "id": "HdUi74eCEanpdhN5",
+  "tags": []
+}
