@@ -437,9 +437,9 @@ const App: React.FC = () => {
     // 優先順序：
     // 1. URL 參數 overrideKey
     // 2. 手動輸入 customApiKey
-    // 3. Vercel 環境變數 (透過 vite.config.ts define 注入的 process.env.GEMINI_API_KEY)
-    // 4. 標準 Vite 環境變數 (import.meta.env.VITE_GEMINI_API_KEY)
-    const apiKeyToUse = overrideKey || customApiKey || process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    // 3. 標準 Vite 環境變數 (import.meta.env.VITE_GEMINI_API_KEY) - 這是最推薦的 Vercel 設定方式
+    // 4. Vercel 環境變數 (透過 vite.config.ts define 注入的 process.env.GEMINI_API_KEY)
+    const apiKeyToUse = overrideKey || customApiKey || import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 
     if (!apiKeyToUse) {
       setLastError("系統設定：請輸入 API Key");
