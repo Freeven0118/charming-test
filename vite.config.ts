@@ -12,9 +12,8 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // 這裡設定好「通道」
-      // 之後您只要在 Vercel 後台的 Environment Variables 填入 API_KEY
-      // 程式碼就會自動抓取，完全不需要寫在檔案裡
-      'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '')
+      // 程式碼會自動抓取 GEMINI_API_KEY
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '')
     }
   }
 })

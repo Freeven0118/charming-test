@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS, LOVE_GAME_QUESTIONS } from './constants';
+import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS } from './constants';
 import { Category } from './types';
 import Chart from 'chart.js/auto';
 
@@ -39,14 +39,18 @@ const App: React.FC = () => {
   // 進度條狀態
   const [fakeProgress, setFakeProgress] = useState(0);
 
-  // === 曖昧急診室 (Love Emergency) 遊戲狀態 ===
-  const GAME_DURATION = 8; // 每題秒數
-  const [gameQIdx, setGameQIdx] = useState(0);
-  const [gameScore, setGameScore] = useState(3); // 初始3顆心
-  const [gameTimeLeft, setGameTimeLeft] = useState(GAME_DURATION);
-  const [gameFeedback, setGameFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [isGameFinished, setIsGameFinished] = useState(false);
-  const gameTimerRef = useRef<number>(0);
+  // === 魅力小知識 (Waiting Tips) ===
+  const [currentTipIdx, setCurrentTipIdx] = useState(0);
+  const CHARISMA_TIPS = [
+    "💡 女人不會愛上「討好她」的男人，她們愛上的是「有原則」的男人。",
+    "💡 你的價值不取決於她的回應，而取決於你如何看待自己。",
+    "💡 真正的自信，是「我知道我很好，即使妳不喜歡我也沒關係」。",
+    "💡 投資自己永遠是回報率最高的選擇，無論是外表還是腦袋。",
+    "💡 不要把生活的重心全部放在女人身上，專注於你的使命感會讓你更有魅力。",
+    "💡 接受拒絕是強者的特權，因為這代表你敢於爭取。",
+    "💡 眼神接觸時，不要先移開視線，這是一種無聲的主導權測試。",
+    "💡 乾淨的儀容是對自己的尊重，而不是為了取悅誰。"
+  ];
 
   // 錯誤處理與手動 Key
   const [customApiKey, setCustomApiKey] = useState('');
@@ -100,12 +104,8 @@ const App: React.FC = () => {
     setUserData({ name: '', email: '' });
     setEmailStatus('idle');
     
-    // 重置遊戲
-    setGameQIdx(0);
-    setGameScore(3);
-    setGameTimeLeft(GAME_DURATION);
-    setGameFeedback(null);
-    setIsGameFinished(false);
+    // 重置 Tip
+    setCurrentTipIdx(0);
     
     aiFetchingRef.current = false;
     lastFetchTimeRef.current = 0;
@@ -434,7 +434,7 @@ const App: React.FC = () => {
         return;
     }
 
-    const apiKeyToUse = overrideKey || customApiKey || process.env.API_KEY;
+    const apiKeyToUse = overrideKey || customApiKey || process.env.GEMINI_API_KEY;
 
     if (!apiKeyToUse) {
       setLastError("系統設定：請輸入 API Key");
@@ -519,61 +519,30 @@ const App: React.FC = () => {
     }
   };
 
-  // 1. 進度條獨立邏輯：確保穩定 90 秒跑完 99%
+  // 1. 進度條獨立邏輯：確保穩定 45 秒跑完 99% (加快一倍)
   useEffect(() => {
     if (step === 'diagnosing' && !lastError) {
       setFakeProgress(1);
       const timer = setInterval(() => {
         setFakeProgress(prev => {
            if (prev >= 99) return 99;
-           return prev + 0.11;
+           return prev + 0.22;
         });
       }, 100);
       return () => clearInterval(timer);
     }
   }, [step, lastError]);
 
-  // 2. Love Emergency Game Logic
+  // 2. Charisma Tips Rotation Logic
   useEffect(() => {
      let interval: number;
-     if (step === 'diagnosing' && !isGameFinished && !gameFeedback) {
+     if (step === 'diagnosing') {
          interval = window.setInterval(() => {
-             setGameTimeLeft(prev => {
-                 if (prev <= 0.1) {
-                     handleGameAnswer(false); // Time's up treated as wrong
-                     return 0;
-                 }
-                 return prev - 0.1;
-             });
-         }, 100);
+             setCurrentTipIdx(prev => (prev + 1) % CHARISMA_TIPS.length);
+         }, 3500); // 每 3.5 秒換一句 (加快一倍)
      }
      return () => clearInterval(interval);
-  }, [step, isGameFinished, gameFeedback]);
-
-  const handleGameAnswer = (isCorrect: boolean) => {
-      // 避免重複處發
-      if (gameFeedback) return;
-
-      setGameFeedback(isCorrect ? 'correct' : 'wrong');
-      
-      if (isCorrect) {
-          setGameScore(s => s + 1);
-      } else {
-          setGameScore(s => Math.max(0, s - 1));
-          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      }
-
-      // 1秒後切下一題
-      setTimeout(() => {
-          if (gameQIdx < LOVE_GAME_QUESTIONS.length - 1) {
-              setGameQIdx(prev => prev + 1);
-              setGameTimeLeft(GAME_DURATION);
-              setGameFeedback(null);
-          } else {
-              setIsGameFinished(true);
-          }
-      }, 1000);
-  };
+  }, [step]);
 
   useEffect(() => {
     if (step === 'diagnosing' && aiAnalysis) {
@@ -813,7 +782,7 @@ const App: React.FC = () => {
               {/* Progress Bar (System Loading) */}
               <div className="w-full max-w-md space-y-2">
                  <div className="flex justify-between items-end">
-                    <span className="text-blue-600 font-bold text-lg animate-pulse">● 診斷引擎分析中...</span>
+                    <span className="text-blue-600 font-bold text-lg animate-pulse">● 系統運算中...</span>
                     <span className="text-3xl font-black text-[#0f172a]">{Math.floor(fakeProgress)}%</span>
                  </div>
                  <div className="w-full bg-slate-200 h-4 rounded-full overflow-hidden shadow-inner">
@@ -821,98 +790,35 @@ const App: React.FC = () => {
                  </div>
               </div>
 
-              {/* === Love Emergency Game Area === */}
-              <div className="w-full max-w-md bg-slate-900 rounded-[2rem] border-4 border-slate-800 shadow-2xl overflow-hidden relative text-white">
+              {/* === System Scanning / Tips Area === */}
+              <div className="w-full max-w-md bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden relative p-8 space-y-6">
                  
-                 {/* Game Content */}
-                 {!isGameFinished ? (
-                     <div className="p-6 space-y-6 relative">
-                        {/* Header: Score & Timer */}
-                        <div className="flex justify-between items-center">
-                            <div className="flex space-x-1 text-2xl">
-                                {Array.from({length: 3}).map((_, i) => (
-                                    <span key={i} className={i < gameScore ? 'opacity-100' : 'opacity-20 grayscale'}>❤️</span>
-                                ))}
-                            </div>
-                            <div className="w-1/2 h-3 bg-slate-700 rounded-full overflow-hidden border border-slate-600">
-                                <div 
-                                    className={`h-full transition-all duration-100 ease-linear ${gameTimeLeft < 3 ? 'bg-red-500' : 'bg-green-400'}`} 
-                                    style={{ width: `${(gameTimeLeft / GAME_DURATION) * 100}%` }}
-                                ></div>
-                            </div>
-                        </div>
+                 {/* Scanning Animation */}
+                 <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
+                    <div className="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute inset-2 bg-blue-50 rounded-full animate-pulse"></div>
+                    <div className="relative z-10 text-6xl">
+                        {fakeProgress < 30 ? '🔍' : fakeProgress < 60 ? '🧠' : fakeProgress < 90 ? '📊' : '✨'}
+                    </div>
+                 </div>
 
-                        {/* Avatar & Scenario */}
-                        <div className="flex flex-col items-center space-y-4">
-                             <div className={`text-7xl transition-transform duration-300 ${gameFeedback === 'correct' ? 'scale-125' : gameFeedback === 'wrong' ? 'animate-shake' : ''}`}>
-                                 {gameFeedback === 'correct' ? '🥰' : gameFeedback === 'wrong' ? '💔' : LOVE_GAME_QUESTIONS[gameQIdx].emoji}
-                             </div>
-                             
-                             <div className="w-full bg-slate-800/80 backdrop-blur-sm border border-slate-600 p-4 rounded-2xl min-h-[100px] flex items-center justify-center text-center shadow-inner">
-                                 <p className="text-lg md:text-xl font-bold leading-relaxed text-slate-100">
-                                     {LOVE_GAME_QUESTIONS[gameQIdx].scenario}
-                                 </p>
-                             </div>
-                        </div>
+                 {/* Status Text */}
+                 <div className="text-center space-y-2">
+                     <h3 className="text-xl font-black text-[#0f172a]">
+                        {fakeProgress < 30 ? '正在分析作答數據...' : 
+                         fakeProgress < 60 ? '正在評估四大魅力維度...' : 
+                         fakeProgress < 90 ? '正在生成專屬教練建議...' : 
+                         '報告準備就緒！'}
+                     </h3>
+                     <p className="text-slate-400 font-medium text-sm">AI 正在為您量身打造脫單策略</p>
+                 </div>
 
-                        {/* Options */}
-                        <div className="space-y-3">
-                            {LOVE_GAME_QUESTIONS[gameQIdx].options.map((opt, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleGameAnswer(opt.isCorrect)}
-                                    disabled={!!gameFeedback}
-                                    className={`
-                                        w-full p-4 rounded-xl font-bold text-left text-base md:text-lg transition-all duration-200 border-2
-                                        ${gameFeedback 
-                                            ? (opt.isCorrect 
-                                                ? 'bg-green-500 border-green-400 text-white shadow-[0_0_15px_rgba(34,197,94,0.6)]' // Reveal Correct
-                                                : 'bg-slate-700 border-slate-700 text-slate-400 opacity-50') 
-                                            : 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-blue-400 hover:text-blue-300'
-                                        }
-                                        ${gameFeedback === 'wrong' && !opt.isCorrect ? 'opacity-30' : ''}
-                                    `}
-                                >
-                                    {idx === 0 ? 'A. ' : 'B. '} {opt.text}
-                                </button>
-                            ))}
-                        </div>
-                     </div>
-                 ) : (
-                     // Game Finished Screen
-                     <div className="p-8 flex flex-col items-center justify-center min-h-[400px] space-y-6 animate-fade-in">
-                         <div className="text-6xl animate-bounce">
-                             {gameScore >= 8 ? '🤴' : gameScore >= 4 ? '😐' : '💀'}
-                         </div>
-                         <div className="text-center space-y-2">
-                             <h3 className="text-3xl font-black text-white">測驗結束</h3>
-                             <p className="text-xl font-bold text-slate-400">
-                                 你的情商分數：<span className="text-[#edae26] text-2xl">{Math.min(100, Math.round((gameScore / 12) * 100))}</span> 分
-                             </p>
-                         </div>
-                         <div className="bg-slate-800 p-4 rounded-xl text-center w-full">
-                             <p className="text-slate-300 font-medium">
-                                 {gameScore >= 10 ? "太強了！你是天生的調情高手！" : 
-                                  gameScore >= 6 ? "還不錯，但有些細節可以更細膩。" : 
-                                  "別灰心，這就是為什麼你需要這份報告！"}
-                             </p>
-                         </div>
-                         <p className="text-xs text-slate-500 animate-pulse">分析報告生成中...</p>
-                     </div>
-                 )}
-
-                 {/* Visual Overlay for Feedback */}
-                 {gameFeedback && (
-                     <div className={`absolute inset-0 z-20 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${gameFeedback ? 'opacity-100' : 'opacity-0'}`}>
-                         <div className={`text-9xl font-black drop-shadow-2xl scale-150 animate-pop-in ${gameFeedback === 'correct' ? 'text-green-400' : 'text-red-500'}`}>
-                             {gameFeedback === 'correct' ? '⭕️' : '❌'}
-                         </div>
-                     </div>
-                 )}
-              </div>
-              
-              <div className="text-slate-400 font-medium italic text-sm">
-                * 本遊戲為等待期間的趣味測試，不影響最終 AI 分析結果
+                 {/* Charisma Tips Carousel */}
+                 <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 min-h-[120px] flex items-center justify-center transition-all duration-500 overflow-hidden relative">
+                     <p key={currentTipIdx} className="text-slate-700 font-bold text-lg text-center leading-relaxed animate-slide-up">
+                         {CHARISMA_TIPS[currentTipIdx]}
+                     </p>
+                 </div>
               </div>
             </>
           ) : (
@@ -1022,7 +928,7 @@ const App: React.FC = () => {
                                     <p className={`text-lg md:text-xl text-[#1e293b] leading-relaxed pl-1 md:pl-4 text-justify font-medium transition-all duration-700 break-words whitespace-normal ${!isUnlocked ? 'filter blur-md select-none opacity-50' : ''}`}>{renderFormattedText(getAiAnalysisForCategory(item.category), 'text-[#edae26]')}</p>
                                     {!isUnlocked && (
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="bg-slate-100/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-bold text-slate-500 shadow-sm border border-slate-200">
+                                            <span className="bg-slate-100/80 backdrop-blur-sm px-6 py-3 rounded-full text-xl font-bold text-slate-500 shadow-sm border border-slate-200">
                                                 🔒 請往下滑動解鎖完整建議
                                             </span>
                                         </div>
@@ -1056,7 +962,7 @@ const App: React.FC = () => {
                                  
                                  {/* AI Generated Advice (Modified: 鎖定時不再模糊，而是使用漸層遮罩) */}
                                  <div className={`bg-[#1e293b] p-5 md:p-8 rounded-[2rem] border border-slate-700 mb-8 transition-all duration-700 relative overflow-hidden ${!isUnlocked ? 'max-h-[280px]' : ''}`}>
-                                    <div className="space-y-4 text-justify">
+                                    <div className="space-y-12 text-justify">
                                         {aiAnalysis.coachGeneralAdvice.split('\n').map((paragraph, idx) => {
                                             const trimmed = paragraph.trim();
                                             if (!trimmed) return null;
