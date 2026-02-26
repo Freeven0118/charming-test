@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS } from './constants';
+import { QUESTIONS, OPTIONS, CATEGORY_INFO, PERSONAS, EXPERT_CONFIG, N8N_WEBHOOK_URL, CATEGORY_KEYS, SOCIAL_URLS, ASSETS, PRIVACY_POLICY_TEXT } from './constants';
 import { Category } from './types';
 import Chart from 'chart.js/auto';
 
@@ -38,6 +38,7 @@ const App: React.FC = () => {
   
   // 進度條狀態
   const [fakeProgress, setFakeProgress] = useState(0);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // === 魅力小知識 (Waiting Tips) ===
   const [currentTipIdx, setCurrentTipIdx] = useState(0);
@@ -49,7 +50,23 @@ const App: React.FC = () => {
     "💡 不要把生活的重心全部放在女人身上，專注於你的使命感會讓你更有魅力。",
     "💡 接受拒絕是強者的特權，因為這代表你敢於爭取。",
     "💡 眼神接觸時，不要先移開視線，這是一種無聲的主導權測試。",
-    "💡 乾淨的儀容是對自己的尊重，而不是為了取悅誰。"
+    "💡 乾淨的儀容是對自己的尊重，而不是為了取悅誰。",
+    "💡 真正的獎品是你自己，別讓自己像個爭取獎品的參賽者。",
+    "💡 你的時間與注意力是有限資源，只投資在值得的人事物上。",
+    "💡 專注於你的使命，女人會希望加入強者的旅程，而不是成為旅程的終點。",
+    "💡 過度的解釋是缺乏自信的表現，強者用行動說話。",
+    "💡 保持神秘感，不要在認識初期就全盤托出，讓她對你保持好奇。",
+    "💡 只有當你隨時有能力轉身離開時，你在這段關係中才擁有真正的尊嚴。",
+    "💡 你的情緒穩定度，決定了你能承載多大的吸引力。",
+    "💡 不要試圖用邏輯去解決她的情緒問題，她需要的是你的同理與帶領。",
+    "💡 稀缺性創造價值，不要讓自己成為隨傳隨到的便利貼。",
+    "💡 讚美要像鹽巴一樣，適量是調味，過量會讓人反胃。",
+    "💡 測試（Shit Test）不是刁難，而是她潛意識在確認你是否足夠強大。",
+    "💡 弱者等待機會，強者創造機會。",
+    "💡 你的快樂必須自給自足，而不是依附於她的情緒起伏。",
+    "💡 學會設立界線，這會讓她更尊重你，而不是更討厭你。",
+    "💡 真正的溫柔來自於強大，軟弱的人那叫討好，不叫溫柔。",
+    "💡 永遠不要為了取悅女人而犧牲你的原則，那只會讓她看輕你。"
   ];
 
   // 錯誤處理與手動 Key
@@ -125,7 +142,13 @@ const App: React.FC = () => {
         const summary = categories.map(cat => {
           const catQuestions = QUESTIONS.filter(q => q.category === cat);
           const score = catQuestions.reduce((acc, q) => {
-              const val = answers[q.id];
+              // Try accessing with number key first, then string key
+              let val = answers[q.id];
+              if (val === undefined) {
+                  // @ts-ignore
+                  val = answers[q.id.toString()];
+              }
+              
               return acc + (val === -1 ? 0 : (val || 0));
           }, 0);
           
@@ -145,6 +168,8 @@ const App: React.FC = () => {
         });
 
         const totalScore = summary.reduce((acc, curr) => acc + curr.score, 0);
+        console.log('Calculated Summary:', summary);
+        console.log('Total Score:', totalScore);
         return { summary, totalScore };
     } catch (e) {
         console.error("Error calculating summary", e);
@@ -524,14 +549,14 @@ const App: React.FC = () => {
     }
   };
 
-  // 1. 進度條獨立邏輯：確保穩定 45 秒跑完 99% (加快一倍)
+  // 1. 進度條獨立邏輯：確保穩定 90 秒跑完 99% (放慢一倍)
   useEffect(() => {
     if (step === 'diagnosing' && !lastError) {
       setFakeProgress(1);
       const timer = setInterval(() => {
         setFakeProgress(prev => {
            if (prev >= 99) return 99;
-           return prev + 0.22;
+           return prev + 0.11;
         });
       }, 100);
       return () => clearInterval(timer);
@@ -544,7 +569,7 @@ const App: React.FC = () => {
      if (step === 'diagnosing') {
          interval = window.setInterval(() => {
              setCurrentTipIdx(prev => (prev + 1) % CHARISMA_TIPS.length);
-         }, 3500); // 每 3.5 秒換一句 (加快一倍)
+         }, 7000); // 每 7 秒換一句 (放慢一倍)
      }
      return () => clearInterval(interval);
   }, [step]);
@@ -1054,7 +1079,13 @@ const App: React.FC = () => {
                                                     )}
                                                   </button>
                                              </form>
-                                             <p className="text-center text-xs text-slate-400 font-medium">我們承諾保護您的隱私，絕不發送垃圾郵件。</p>
+                                             <p className="text-center text-xs text-slate-400 font-medium">
+                                                 我們和您一樣討厭垃圾信！您只會收到相關資訊，且隨時可以取消接收，請同意
+                                                 <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-slate-500 underline hover:text-slate-700 mx-1">
+                                                     [隱私權政策]
+                                                 </button>
+                                                 後再點擊送出
+                                             </p>
                                          </div>
                                     </div>
                                  )}
@@ -1110,7 +1141,40 @@ const App: React.FC = () => {
       <footer className="w-full text-center py-10 text-slate-400 text-sm px-6 border-t border-slate-200 mt-auto space-y-2 bg-white">
         <p className="font-bold">© 版權所有 男性形象教練 彭邦典</p>
         <p>本測驗由 AI 輔助生成 ，不涉及任何心理治療或精神診斷，測驗結果僅供參考。</p>
+        <button onClick={() => setShowPrivacyModal(true)} className="text-slate-400 hover:text-slate-600 underline text-xs mt-2">
+            隱私權政策
+        </button>
       </footer>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-pop-in">
+                <div className="p-4 border-b border-slate-100 relative flex items-center justify-center bg-white">
+                    <h3 className="text-xl font-bold text-slate-900">隱私權政策</h3>
+                    <button 
+                        onClick={() => setShowPrivacyModal(false)}
+                        className="absolute right-4 p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto text-sm text-slate-600 leading-relaxed">
+                    <div dangerouslySetInnerHTML={{ __html: PRIVACY_POLICY_TEXT }} />
+                </div>
+                <div className="p-4 border-t border-slate-100 bg-white text-center">
+                    <button 
+                        onClick={() => setShowPrivacyModal(false)}
+                        className="px-8 py-3 bg-[#0f172a] text-white rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg"
+                    >
+                        我已了解
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };

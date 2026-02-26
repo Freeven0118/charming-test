@@ -188,5 +188,83 @@ export const CATEGORY_INFO: Record<Category, { description: string; suggestions:
   }
 };
 
-// 5. 曖昧急診室 遊戲題庫 - 已移除
+// 5. 隱私權政策內容
+export const PRIVACY_POLICY_TEXT = `
+<div class="space-y-6 text-slate-700 text-justify">
+    <p>歡迎您來到 Menspalais（以下簡稱「本網站」）。我們非常重視您的隱私權，並承諾依據中華民國《個人資料保護法》及相關法令規定，保護您的個人資料。為了讓您能夠安心使用本網站的各項服務與資訊，特此向您說明本網站的隱私權保護政策，以保障您的權益，請您詳閱下列內容：</p>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">一、 個人資料的蒐集目的與類別</h4>
+        <p class="mb-2">當您造訪本網站或使用我們提供的服務（例如：訂閱電子報、填寫表單、預約會談）時，我們將視該服務功能性質，請您提供必要的個人資料。</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li><strong>蒐集目的：</strong>包含但不限於客戶管理與服務、行銷（包含寄送電子報及相關優惠資訊）、網站流量與使用者行為分析、以及提供各項優化服務。</li>
+            <li><strong>蒐集類別：</strong>
+                <ul class="list-[circle] pl-5 mt-1 space-y-1 text-slate-600">
+                    <li>個人識別資訊：如姓名、電子郵件地址（Email）等。</li>
+                    <li>網站使用數據：如 IP 位址、使用時間、使用的瀏覽器、瀏覽及點選資料紀錄、Cookie 等（此類資料主要用於網站流量分析與服務提升，不會和特定個人聯繫）。</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">二、 個人資料利用之期間、地區、對象及方式</h4>
+        <ul class="list-disc pl-5 space-y-1">
+            <li><strong>期間：</strong>本網站營運期間、特定目的存續期間，或依法令所訂之保存年限。當您要求刪除或取消訂閱時，我們將依規停止蒐集、處理或利用您的個人資料。</li>
+            <li><strong>地區：</strong>您的個人資料將用於本網站營運地區及我們所使用的第三方服務平台（如 Systeme.io）伺服器所在地區。</li>
+            <li><strong>對象：</strong>本網站及協助我們提供服務的第三方合作夥伴（如電子報發送系統、網站分析工具）。</li>
+            <li><strong>方式：</strong>以自動化機器或其他非自動化之方式，進行資料的蒐集、處理與利用（包含電子郵件通知、行銷資訊發送等）。</li>
+        </ul>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">三、 資訊分享與揭露</h4>
+        <p class="mb-2">我們承諾絕不將您的個人資料出售、交換或出租給任何其他團體、個人或私人企業。您的資料僅會在以下情況下進行必要處理：</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li><strong>使用第三方服務：</strong>為提供您完善的服務，您的資料將儲存並處理於 Systeme.io 等具備嚴格安全標準的第三方服務平台，該平台亦受嚴格的隱私權規範約束。</li>
+            <li><strong>法規要求：</strong>配合司法單位合法的調查，或依法令相關規定需要揭露時。</li>
+        </ul>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">四、 您擁有的個資權利（個資法第 3 條）</h4>
+        <p class="mb-2">針對您交付予本網站的個人資料，您依法可隨時向我們行使以下權利：</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li>查詢或請求閱覽。</li>
+            <li>請求製給複製本。</li>
+            <li>請求補充或更正。</li>
+            <li>請求停止蒐集、處理或利用。</li>
+            <li>請求刪除。</li>
+            <li><strong>退訂機制：</strong>若您希望停止接收我們的電子報或行銷郵件，您可以隨時點擊信件底部的「取消訂閱（Unsubscribe）」連結，我們將立即從發送名單中移除您的信箱。</li>
+        </ul>
+        <p class="mt-2">若您欲行使上述其他權利，請隨時透過我們的客服信箱與我們聯繫，我們將盡速為您處理。</p>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">五、 不提供個人資料所致權益之影響</h4>
+        <p>您可自由選擇是否提供個人資料。若您拒絕提供特定服務所需的必要個人資料（例如未填寫正確的 Email），本網站將可能無法為您提供完整的服務（例如無法成功訂閱電子報或安排會談），敬請見諒。</p>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">六、 Cookie 技術與使用</h4>
+        <p class="mb-2">為了提供您最佳的服務，本網站會在您的電腦中放置並取用我們的 Cookie。Cookie 是網站伺服器用來和使用者瀏覽器進行溝通的一種技術，能為您提供更個人化的體驗。</p>
+        <p><strong>您的選擇權：</strong>若您不願接受 Cookie 的寫入，您可在您使用的瀏覽器功能項中設定隱私權等級為高，即可拒絕 Cookie 的寫入，但這可能會導致網站某些功能無法正常執行。</p>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">七、 未成年人保護</h4>
+        <p>本網站之服務並非專為未成年人（未滿 18 歲）設計。我們不會在知情的情況下，主動蒐集未成年人的個人資料。若您是未成年人，請在您的法定代理人或監護人陪同與同意下，再使用本網站之服務。</p>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">八、 隱私權政策之修改</h4>
+        <p>本網站保留隨時修改本隱私權政策的權利，以因應社會環境及法令的變遷與科技的進步。政策修改後將直接發布於本網站上，重大變更時我們將透過網站公告或電子郵件通知您。建議您定期檢閱本政策，以確保了解我們最新的隱私權保護措施。</p>
+    </div>
+
+    <div>
+        <h4 class="text-base md:text-lg font-bold text-slate-900 mb-2">九、 聯絡我們</h4>
+        <p>如果您對本隱私權政策、您的個人資料處理方式，或有任何與隱私權相關的疑問，歡迎隨時透過以下電子郵件聯繫我們：<a href="mailto:freeven@menspalais.com" class="text-blue-600 hover:underline font-bold">freeven@menspalais.com</a></p>
+    </div>
+</div>
+`;
 
