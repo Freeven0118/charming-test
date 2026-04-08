@@ -483,7 +483,7 @@ const App: React.FC = () => {
       }));
 
       const prompt = `
-        你現在是專業形象教練「彭邦典」。這是一位 25-35 歲男性的「脫單力檢核」測驗結果深度報告。
+        你現在是專業形象教練「彭邦典」。這是一位 25-35 歲男性的「脫單人格心理測驗」測驗結果深度報告。
         數據：總分 ${localSummary.totalScore}/48 (換算百分制約 ${totalScore100}分)。
         各維度：${JSON.stringify(localSummary.summary.map(s => ({ cat: s.category, score: s.score })))}
         具體作答：${JSON.stringify(detailedData)}
@@ -704,7 +704,7 @@ const App: React.FC = () => {
       {step === 'hero' && (
         <div className="flex-1 flex flex-col justify-start md:justify-center w-full animate-fade-in py-6 md:py-10 space-y-4 md:space-y-12 px-4 md:px-0">
           <div className="text-center space-y-2 md:space-y-4 relative z-20">
-            <h1 className="text-3xl md:text-7xl font-black text-[#0f172a] tracking-tighter leading-normal py-1">脫單力檢核分析</h1>
+            <h1 className="text-3xl md:text-7xl font-black text-[#0f172a] tracking-tighter leading-normal py-1">脫單人格心理測驗</h1>
             <div className="space-y-1 md:space-y-2">
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">專為 25-35 歲男性設計</p>
                 <p className="text-lg md:text-3xl text-slate-500 font-bold">快速找到你的脫單阻礙</p>
