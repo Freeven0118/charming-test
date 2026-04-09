@@ -354,6 +354,11 @@ const App: React.FC = () => {
         ai_analysis: {
             overview: finalReport.personaOverview || persona.subtitle,
             explanation: processTextForEmail(finalReport.personaExplanation, '#edae26'),
+            advice_skin: finalReport.appearanceAnalysis,
+            advice_social: finalReport.socialAnalysis,
+            advice_hair: finalReport.interactionAnalysis,
+            advice_style: finalReport.mindsetAnalysis,
+            coach_summary: finalReport.coachGeneralAdvice,
         },
 
         html_components: {
@@ -420,6 +425,17 @@ const App: React.FC = () => {
 
   const handleRetryEmail = () => {
     if (aiAnalysis) sendToWebhook(aiAnalysis);
+  };
+
+  const handleRetryAiAnalysis = () => {
+    setAiAnalysis(null);
+    setLastError('');
+    aiFetchingRef.current = false;
+    lastFetchTimeRef.current = 0;
+    setFakeProgress(0);
+    setCurrentTipIdx(0);
+    setStep('diagnosing');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const runDiagnosis = async (forceFallback: boolean = false, overrideKey: string = '') => {
@@ -907,6 +923,22 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* AI Fallback Retry Banner */}
+          {aiAnalysis.personaExplanation.startsWith('⚠️') && (
+            <div className="mx-2 md:mx-0 bg-amber-50 border-2 border-amber-300 rounded-[2rem] p-5 md:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 animate-slide-up">
+              <div className="text-center sm:text-left">
+                <p className="font-black text-amber-800 text-lg">目前顯示的是基礎報告</p>
+                <p className="text-amber-600 font-medium text-sm">AI 分析尚未完成，點擊右側按鈕可重新嘗試取得完整深度報告。</p>
+              </div>
+              <button
+                onClick={handleRetryAiAnalysis}
+                className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white font-black px-6 py-3 rounded-2xl text-base shadow-md transition-all active:scale-95 whitespace-nowrap"
+              >
+                🔄 重新進行 AI 分析
+              </button>
+            </div>
+          )}
 
           <div className="w-full md:px-0 space-y-10">
             {/* Radar Chart (Visible) - 8px margin */}
